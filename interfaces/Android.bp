@@ -41,6 +41,9 @@ aidl_interface {
         cpp: {
             enabled: true,
         },
+        ndk: {
+            enabled: true,
+        },
         java: {
             sdk_version: "module_current",
         },
@@ -96,6 +99,9 @@ aidl_interface {
 
     backend: {
         cpp: {
+            enabled: true,
+        },
+        ndk: {
             enabled: true,
         },
         java: {
@@ -204,6 +210,9 @@ aidl_interface {
 
     backend: {
         cpp: {
+            enabled: true,
+        },
+        ndk: {
             enabled: true,
         },
         java: {
