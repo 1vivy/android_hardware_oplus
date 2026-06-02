@@ -7,4 +7,6 @@ package com.oplus.uifirst;
 
 public interface IOplusUIFirstManager {
     default void setBinderThreadUxFlag(int pid, int flag) {}
+
+    default void setUxThreadValue(int tid, int value, String name) {}
 }
