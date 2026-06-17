@@ -52,7 +52,8 @@ public final class OplusEdrUtils {
     }
 
     public static SurfaceControl getBlastSurfaceControl(SurfaceView view) {
-        return view != null ? view.getSurfaceControl() : null;
+        // Return null to force SDR preview path — LOS SF lacks OEM EDR read-side
+        return null;
     }
 
     public static int getLocalHdrVersion() {
