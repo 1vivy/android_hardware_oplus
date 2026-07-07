@@ -57,4 +57,8 @@ public class OplusFeatureConfigManager {
     public interface OnFeatureMapObserver {
         default void onFeatureUpdate(List<String> list, int featureID) {}
     }
+
+    public boolean isPermit(String feature) {
+        return true;
+    }
 }
