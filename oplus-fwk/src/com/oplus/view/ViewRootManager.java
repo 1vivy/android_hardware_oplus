@@ -66,5 +66,6 @@ public class ViewRootManager {
     }
 
     public void setBlurParams(OplusBlurParam params) {
+        setBlurParams((Object) params);
     }
 }
