@@ -74,4 +74,12 @@ public class OplusKeyEventManager {
     public int getVersion() {
         return mVersion;
     }
+
+    public boolean registerKeyEventInterceptor(Context context, String key, OnKeyEventObserver observer, android.util.ArrayMap map) {
+        return false;
+    }
+
+    public boolean unregisterKeyEventInterceptor(Context context, String key, OnKeyEventObserver observer) {
+        return false;
+    }
 }

@@ -115,4 +115,16 @@ public class ViewRootImpl {
             this.mFrameDrawingCallback.onFrameDraw(l);
         }
     }
+
+    public void registerRtFrameCallback(final com.oplus.wrapper.graphics.HardwareRenderer.FrameDrawingCallback callback) {
+        if (callback == null) {
+            return;
+        }
+        this.mViewRootImpl.registerRtFrameCallback(new HardwareRenderer.FrameDrawingCallback() {
+            @Override
+            public void onFrameDraw(long frameNr) {
+                callback.onFrameDraw(frameNr);
+            }
+        });
+    }
 }

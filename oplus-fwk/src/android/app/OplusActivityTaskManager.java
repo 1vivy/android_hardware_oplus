@@ -87,4 +87,19 @@ public class OplusActivityTaskManager extends OplusBaseActivityTaskManager imple
             reply.recycle();
         }
     }
+
+    public List<OplusAppInfo> getVisibleTasks(int displayId) {
+        return new ArrayList<>();
+    }
+
+    public void invalidateSnapshotForSurfacePreview(String pkg) {
+    }
+
+    public boolean registerTaskInfoChangeListener(com.oplus.app.OplusTaskInfoChangeListener listener, int arg1, int arg2) {
+        return true;
+    }
+
+    public boolean unregisterTaskInfoChangeListener(com.oplus.app.OplusTaskInfoChangeListener listener) {
+        return true;
+    }
 }

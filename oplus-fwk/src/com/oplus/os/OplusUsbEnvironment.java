@@ -288,4 +288,8 @@ public class OplusUsbEnvironment extends Environment {
     public static String getMultiappSdDirectory() {
         return "/storage/emulated/999";
     }
+
+    public static File getExternalStorageDirectory() {
+        return Environment.getExternalStorageDirectory();
+    }
 }

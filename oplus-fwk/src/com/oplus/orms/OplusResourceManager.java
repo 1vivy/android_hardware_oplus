@@ -16,4 +16,7 @@ public class OplusResourceManager {
     public long ormsSetSceneAction(OrmsSaParam ormsSaParam) {
         return -1L;
     }
+
+    public void ormsClrSceneAction(long handle) {
+    }
 }

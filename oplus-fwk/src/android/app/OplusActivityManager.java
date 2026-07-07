@@ -129,4 +129,44 @@ public class OplusActivityManager extends OplusBaseActivityManager implements IO
     public boolean registerTaskInfoChangeListener(com.oplus.app.OplusTaskInfoChangeListener listener, int arg1, int arg2) {
         return true;
     }
+
+    public void addBackgroundRestrictedInfo(String pkg, java.util.List<String> list) {
+    }
+
+    public void addPreventIndulgeList(java.util.List<String> list) {
+    }
+
+    public static List<String> getFilteredTasks(int type, boolean flag) {
+        return new java.util.ArrayList<>();
+    }
+
+    public List<String> getTaskPkgList(int userId) {
+        return new java.util.ArrayList<>();
+    }
+
+    public void handleAppFromControlCenter(String pkg, int userId) {
+    }
+
+    public boolean isAppCallRefuseMode() {
+        return false;
+    }
+
+    public boolean requestDeviceFolded(int state, boolean folded) {
+        return false;
+    }
+
+    public void setAllowLaunchApps(java.util.List<String> list) {
+    }
+
+    public void setAppCallRefuseMode(boolean enable) {
+    }
+
+    public void setChildSpaceMode(boolean enable) {
+    }
+
+    public void setPreventIndulgeController(com.oplus.app.IOplusAppStartController controller) {
+    }
+
+    public void startActivity(android.content.Intent intent) {
+    }
 }

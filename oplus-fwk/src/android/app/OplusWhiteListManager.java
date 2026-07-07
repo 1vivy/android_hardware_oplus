@@ -101,8 +101,8 @@ public class OplusWhiteListManager {
         return resultList;
     }
 
-    public List<String> getGlobalProcessWhiteList() {
-        List<String> resultList = new ArrayList<>();
+    public ArrayList<String> getGlobalProcessWhiteList() {
+        ArrayList<String> resultList = new ArrayList<>();
         try {
             List<String> tempList = this.mOplusActivityManager.getGlobalProcessWhiteList();
             if (!ArrayUtils.isEmpty(tempList)) {
