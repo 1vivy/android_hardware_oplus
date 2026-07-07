@@ -102,7 +102,12 @@ public final class OplusAccessControlManagerService extends IOplusAccessControlM
         if (packageName == null) {
             return false;
         }
-        return mStateStore.isEncryptPass(packageName, userId);
+        // Auth is trivially "passed" when the package is not in the encrypt set
+        // (nothing gated); gate for real only when the package IS encrypt-gated.
+        // Reproduces the device-validated both-true behavior for the nothing-locked
+        // state while preserving real gating once a package is added to the encrypt set.
+        return !isEncryptedPackage(packageName, userId)
+                || mStateStore.isEncryptPass(packageName, userId);
     }
 
     @Override
