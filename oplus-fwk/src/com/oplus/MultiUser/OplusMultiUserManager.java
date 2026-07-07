@@ -18,4 +18,8 @@ public class OplusMultiUserManager {
     public boolean isMultiSystemUserHandle(UserHandle userHandle) {
         return false;
     }
+
+    public boolean isMultiSystemUserId(int userId) {
+        return false;
+    }
 }

@@ -750,4 +750,11 @@ public class OplusPackageManager {
             throw e.rethrowFromSystemServer();
         }
     }
+
+    public com.oplus.ota.OplusSystemUpdateInfo getSystemUpdateInfo() {
+        // No OOS OTA service on LineageOS. Null is fail-closed by OEM design:
+        // the caller immediately dereferences the record, and that NPE lands in
+        // its own catch(Exception), aborting the OTA-check branch cleanly.
+        return null;
+    }
 }
