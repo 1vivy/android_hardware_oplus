@@ -31,6 +31,8 @@ java_library {
 
     libs: [
         "oplus-fwk-oplusitem-compileonly",
+        "vendor.oplus.hardware.radio-V2-java",
+        "vendor.oplus.hardware.ims-V1-java",
     ],
 }
 
