@@ -20,6 +20,13 @@ import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.util.Log;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+
 import vendor.oplus.hardware.displaypanelfeature.IDisplayPanelFeature;
 
 public final class Utils {
@@ -30,6 +37,50 @@ public final class Utils {
     private static final int FEATURE_ADFR_STATE = 233;
 
     private Utils() {}
+
+    public static void writeValue(String filename, String value) {
+        if (filename == null) {
+            return;
+        }
+        try {
+            FileOutputStream fos = new FileOutputStream(new File(filename));
+            fos.write(value.getBytes());
+            fos.flush();
+            fos.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static String readLine(String filename) {
+        if (filename == null) {
+            return null;
+        }
+        BufferedReader br = null;
+        String line = null;
+        try {
+            br = new BufferedReader(new FileReader(filename), 1024);
+            line = br.readLine();
+        } catch (IOException e) {
+            return null;
+        } finally {
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (IOException e) {
+                    // Ignore close failures after the value has been read.
+                }
+            }
+        }
+        return line;
+    }
+
+    public static String getFileValue(String filename, String defaultValue) {
+        String fileValue = readLine(filename);
+        return fileValue != null ? fileValue : defaultValue;
+    }
 
     private static IDisplayPanelFeature getDisplayPanelFeature() {
         return IDisplayPanelFeature.Stub.asInterface(

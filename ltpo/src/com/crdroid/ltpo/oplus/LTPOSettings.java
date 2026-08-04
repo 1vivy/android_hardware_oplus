@@ -36,12 +36,15 @@ import androidx.preference.SwitchPreferenceCompat;
 import com.android.settingslib.widget.SettingsBasePreferenceFragment;
 
 import java.util.Arrays;
+import java.util.Locale;
 
 public class LTPOSettings extends SettingsBasePreferenceFragment
         implements Preference.OnPreferenceChangeListener {
     private static final String TAG = LTPOSettings.class.getSimpleName();
 
     private static final String KEY_LTPO_SWITCH = "ltpo_enabled";
+
+    private static final String FILE_LTPO = "/sys/kernel/oplus_display/adfr_config";
 
     private SwitchPreferenceCompat mLTPOSwitch;
 
@@ -54,7 +57,9 @@ public class LTPOSettings extends SettingsBasePreferenceFragment
         mLTPOSwitch = (SwitchPreferenceCompat) findPreference(KEY_LTPO_SWITCH);
         if (Utils.isLtpoSupported()) {
             mLTPOSwitch.setEnabled(true);
-            mLTPOSwitch.setChecked(sharedPrefs.getBoolean(KEY_LTPO_SWITCH, true));
+            Integer current = readLTPOConfig();
+            boolean enabled = current != null && isLTPOEnabled(getContext(), current);
+            mLTPOSwitch.setChecked(sharedPrefs.getBoolean(KEY_LTPO_SWITCH, enabled));
             mLTPOSwitch.setOnPreferenceChangeListener(this);
         } else {
             mLTPOSwitch.setEnabled(false);
@@ -70,6 +75,7 @@ public class LTPOSettings extends SettingsBasePreferenceFragment
                 return false;
             }
             sharedPrefs.edit().putBoolean(KEY_LTPO_SWITCH, enabled).apply();
+            writeLTPOSetting(getContext(), enabled);
             return true;
         }
 
@@ -79,8 +85,45 @@ public class LTPOSettings extends SettingsBasePreferenceFragment
     public static void restoreLTPOSetting(Context context) {
         if (Utils.isLtpoSupported()) {
             SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(context);
-            boolean value = sharedPrefs.getBoolean(KEY_LTPO_SWITCH, true);
+            Integer current = readLTPOConfig();
+            boolean enabled = current != null && isLTPOEnabled(context, current);
+            boolean value = sharedPrefs.getBoolean(KEY_LTPO_SWITCH, enabled);
             Utils.setLtpoEnabled(value);
+            writeLTPOSetting(context, value);
         }
+    }
+
+    private static Integer readLTPOConfig() {
+        String value = Utils.getFileValue(FILE_LTPO, null);
+        if (value == null) {
+            return null;
+        }
+
+        try {
+            return Integer.decode(value.trim());
+        } catch (NumberFormatException e) {
+            Log.e(TAG, "Invalid LTPO config: " + value, e);
+            return null;
+        }
+    }
+
+    private static boolean isLTPOEnabled(Context context, int current) {
+        Resources resources = context.getResources();
+        int enabledValue = resources.getInteger(R.integer.config_ltpo_enabled_value);
+        int managedMask = resources.getInteger(R.integer.config_ltpo_managed_mask);
+        return LTPOConfig.isEnabled(current, enabledValue, managedMask);
+    }
+
+    private static void writeLTPOSetting(Context context, boolean enabled) {
+        Integer current = readLTPOConfig();
+        if (current == null) {
+            return;
+        }
+
+        Resources resources = context.getResources();
+        int enabledValue = resources.getInteger(R.integer.config_ltpo_enabled_value);
+        int managedMask = resources.getInteger(R.integer.config_ltpo_managed_mask);
+        int next = LTPOConfig.merge(current, enabledValue, managedMask, enabled);
+        Utils.writeValue(FILE_LTPO, String.format(Locale.US, "0x%x", next));
     }
 }
