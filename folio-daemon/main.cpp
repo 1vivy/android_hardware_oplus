@@ -1,161 +1,131 @@
 /*
  * SPDX-FileCopyrightText: 2017 The Android Open Source Project
- * SPDX-FileCopyrightText: 2023-2025 The LineageOS Project
+ * SPDX-FileCopyrightText: 2023-2026 The LineageOS Project
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <android/looper.h>
-#include <android/sensor.h>
+#include "StateParser.h"
+
 #include <cutils/log.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/input.h>
 #include <linux/uinput.h>
+#include <stdio.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <time.h>
 #include <unistd.h>
 
-// Hall-effect sensor type
-#define SENSOR_TYPE 33171002
+#include <array>
+#include <optional>
+#include <string_view>
 
-#define RETRY_LIMIT 120
-#define RETRY_PERIOD 30          // 30 seconds
-#define WARN_PERIOD (time_t)300  // 5 minutes
+namespace {
 
-/*
- * This simple daemon listens for events from the Hall-effect sensor and writes
- * the appropriate SW_LID event to a uinput node. This allows the screen to be
- * locked with a magnetic folio case.
- */
-int main(void) {
-    int uinputFd;
-    int err;
-    struct uinput_user_dev uidev;
-    ASensorManager* sensorManager = nullptr;
-    ASensorRef hallSensor;
-    ALooper* looper;
-    ASensorEventQueue* eventQueue = nullptr;
-    time_t lastWarn = 0;
-    int attemptCount = 0;
+constexpr char kMagneticCoverStatus[] = "/proc/magnetic_cover/magcvr_config_para";
+constexpr useconds_t kPollPeriodUs = 250000;
+constexpr time_t kWarnPeriodSeconds = 300;
 
+int createUinputDevice() {
+    const int fd = TEMP_FAILURE_RETRY(open("/dev/uinput", O_WRONLY | O_NONBLOCK | O_CLOEXEC));
+    if (fd < 0) {
+        ALOGE("Unable to open uinput node: %s", strerror(errno));
+        return -1;
+    }
+
+    if (TEMP_FAILURE_RETRY(ioctl(fd, UI_SET_EVBIT, EV_SW)) != 0 ||
+        TEMP_FAILURE_RETRY(ioctl(fd, UI_SET_EVBIT, EV_SYN)) != 0 ||
+        TEMP_FAILURE_RETRY(ioctl(fd, UI_SET_SWBIT, SW_LID)) != 0) {
+        ALOGE("Unable to enable SW_LID events: %s", strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    struct uinput_user_dev device{};
+    snprintf(device.name, UINPUT_MAX_NAME_SIZE, "uinput-folio");
+    device.id.bustype = BUS_VIRTUAL;
+
+    if (TEMP_FAILURE_RETRY(write(fd, &device, sizeof(device))) !=
+                static_cast<ssize_t>(sizeof(device)) ||
+        TEMP_FAILURE_RETRY(ioctl(fd, UI_DEV_CREATE)) != 0) {
+        ALOGE("Unable to create uinput device: %s", strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    return fd;
+}
+
+std::optional<bool> readClosedState() {
+    const int fd = TEMP_FAILURE_RETRY(open(kMagneticCoverStatus, O_RDONLY | O_CLOEXEC));
+    if (fd < 0) {
+        return std::nullopt;
+    }
+
+    std::array<char, 256> status{};
+    const ssize_t length = TEMP_FAILURE_RETRY(read(fd, status.data(), status.size() - 1));
+    const int savedErrno = errno;
+    close(fd);
+    errno = savedErrno;
+    if (length <= 0) {
+        return std::nullopt;
+    }
+
+    const std::optional<bool> closed =
+            folio::parseClosed(std::string_view(status.data(), static_cast<std::size_t>(length)));
+    if (!closed.has_value()) {
+        errno = EINVAL;
+    }
+    return closed;
+}
+
+bool writeInputEvent(int fd, __u16 type, __u16 code, __s32 value) {
+    struct input_event event{};
+    event.type = type;
+    event.code = code;
+    event.value = value;
+    return TEMP_FAILURE_RETRY(write(fd, &event, sizeof(event))) ==
+           static_cast<ssize_t>(sizeof(event));
+}
+
+bool sendLidState(int fd, bool closed) {
+    return writeInputEvent(fd, EV_SW, SW_LID, closed ? 1 : 0) &&
+           writeInputEvent(fd, EV_SYN, SYN_REPORT, 0);
+}
+
+}  // namespace
+
+int main() {
     ALOGI("Started");
 
-    uinputFd = TEMP_FAILURE_RETRY(open("/dev/uinput", O_WRONLY | O_NONBLOCK));
+    const int uinputFd = createUinputDevice();
     if (uinputFd < 0) {
-        ALOGE("Unable to open uinput node: %s", strerror(errno));
-        goto out;
+        return 1;
     }
 
-    err = TEMP_FAILURE_RETRY(ioctl(uinputFd, UI_SET_EVBIT, EV_SW)) |
-          TEMP_FAILURE_RETRY(ioctl(uinputFd, UI_SET_EVBIT, EV_SYN)) |
-          TEMP_FAILURE_RETRY(ioctl(uinputFd, UI_SET_SWBIT, SW_LID));
-    if (err != 0) {
-        ALOGE("Unable to enable SW_LID events: %s", strerror(errno));
-        goto out;
-    }
+    ALOGI("Registered uinput-folio for SW_LID events");
+    std::optional<bool> lastState;
+    time_t lastWarn = 0;
 
-    memset(&uidev, 0, sizeof(uidev));
-    snprintf(uidev.name, UINPUT_MAX_NAME_SIZE, "uinput-folio");
-    uidev.id.bustype = BUS_VIRTUAL;
-    uidev.id.vendor = 0;
-    uidev.id.product = 0;
-    uidev.id.version = 0;
-
-    err = TEMP_FAILURE_RETRY(write(uinputFd, &uidev, sizeof(uidev)));
-    if (err < 0) {
-        ALOGE("Write user device to uinput node failed: %s", strerror(errno));
-        goto out;
-    }
-
-    err = TEMP_FAILURE_RETRY(ioctl(uinputFd, UI_DEV_CREATE));
-    if (err < 0) {
-        ALOGE("Unable to create uinput device: %s", strerror(errno));
-        goto out;
-    }
-
-    ALOGI("Successfully registered uinput-folio for SW_LID events");
-
-    // Get Hall-effect sensor events from the NDK
-    sensorManager = ASensorManager_getInstanceForPackage(nullptr);
-    looper = ALooper_forThread();
-    if (looper == nullptr) {
-        looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
-    }
-
-    eventQueue = ASensorManager_createEventQueue(sensorManager, looper, 0, NULL, NULL);
-
-    /*
-     * As long as we are unable to get the sensor handle, periodically retry
-     * and emit an error message at a low frequency to prevent high CPU usage
-     * and log spam. If we simply exited with an error here, we would be
-     * immediately restarted and fail in the same way indefinitely.
-     */
-    while (true) {
-        time_t now = time(NULL);
-        hallSensor = ASensorManager_getDefaultSensorEx(sensorManager, SENSOR_TYPE, true);
-        if (hallSensor != nullptr) {
-            break;
-        }
-
-        if (++attemptCount >= RETRY_LIMIT) {
-            ALOGE("Retries exhausted; exiting");
-            goto out;
-        } else if (now > lastWarn + WARN_PERIOD) {
-            ALOGE("Unable to get Hall-effect sensor");
-            lastWarn = now;
-        }
-
-        sleep(RETRY_PERIOD);
-    }
-
-    err = ASensorEventQueue_registerSensor(eventQueue, hallSensor, 0, 0);
-    if (err < 0) {
-        ALOGE("Unable to register for Hall-effect sensor events");
-        goto out;
-    }
-
-    ALOGI("Starting polling loop");
-
-    // Polling loop
-    while (ALooper_pollOnce(-1, NULL, NULL, NULL) > ALOOPER_POLL_TIMEOUT) {
-        ASensorEvent sensorEvent;
-        while (ASensorEventQueue_getEvents(eventQueue, &sensorEvent, 1) > 0) {
-            // 0 means closed; 1 means open
-            int isClosed = sensorEvent.data[0] > 0.0f ? 0 : 1;
-            struct input_event event;
-            event.type = EV_SW;
-            event.code = SW_LID;
-            event.value = isClosed;
-            err = TEMP_FAILURE_RETRY(write(uinputFd, &event, sizeof(event)));
-            if (err < 0) {
-                ALOGE("Write EV_SW to uinput node failed: %s", strerror(errno));
-                goto out;
+    for (;;) {
+        const std::optional<bool> closed = readClosedState();
+        if (!closed.has_value()) {
+            const time_t now = time(nullptr);
+            if (now > lastWarn + kWarnPeriodSeconds) {
+                ALOGE("Unable to read magnetic-cover state: %s", strerror(errno));
+                lastWarn = now;
             }
-
-            // Force a flush with an EV_SYN
-            event.type = EV_SYN;
-            event.code = SYN_REPORT;
-            event.value = 0;
-            err = TEMP_FAILURE_RETRY(write(uinputFd, &event, sizeof(event)));
-            if (err < 0) {
-                ALOGE("Write EV_SYN to uinput node failed: %s", strerror(errno));
-                goto out;
+        } else if (closed != lastState) {
+            if (!sendLidState(uinputFd, *closed)) {
+                ALOGE("Unable to write SW_LID event: %s", strerror(errno));
+                close(uinputFd);
+                return 1;
             }
-
-            ALOGI("Sent lid %s event", isClosed ? "closed" : "open");
+            lastState = closed;
+            ALOGI("Sent lid %s event", *closed ? "closed" : "open");
         }
-    }
 
-out:
-    // Clean up
-    if (sensorManager != nullptr && eventQueue != nullptr) {
-        ASensorManager_destroyEventQueue(sensorManager, eventQueue);
+        usleep(kPollPeriodUs);
     }
-
-    if (uinputFd >= 0) {
-        close(uinputFd);
-    }
-
-    // The loop can only be exited via failure or signal
-    return 1;
 }
