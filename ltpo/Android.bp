@@ -22,3 +22,12 @@ android_app {
         proguard_flags_files: ["proguard.flags"],
     },
 }
+
+java_binary_host {
+    name: "OplusLtpoConfigTests",
+    srcs: [
+        "src/com/crdroid/ltpo/oplus/LTPOConfig.java",
+        "tests/src/**/*.java",
+    ],
+    main_class: "com.crdroid.ltpo.oplus.LTPOConfigTest",
+}
