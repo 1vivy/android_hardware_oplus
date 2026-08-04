@@ -4,7 +4,6 @@ cc_binary {
     init_rc: ["folio_daemon.rc"],
 
     shared_libs: [
-        "libandroid",
         "libcutils",
         "liblog",
     ],
@@ -22,4 +21,13 @@ cc_binary {
     owner: "google",
 
     system_ext_specific: true,
+}
+
+cc_test_host {
+    name: "folio-daemon-state-parser-test",
+    srcs: ["tests/StateParserTest.cpp"],
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
 }
