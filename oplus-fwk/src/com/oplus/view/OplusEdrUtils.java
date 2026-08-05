@@ -6,9 +6,16 @@ import android.os.SystemProperties;
 import android.util.Size;
 import android.view.SurfaceControl;
 import android.view.SurfaceView;
+import android.view.ViewRootImpl;
 import android.view.View;
 
-/* Stub implementation - OxygenOS SurfaceControl EDR extensions not available */
+/*
+ * The AOSP-standard parts of this surface are implemented against the platform
+ * SurfaceControl APIs. The remaining setters drive OxygenOS-private SurfaceControl
+ * extensions (gainmap descriptors, auxiliary images, per-view EDR transforms) that
+ * have no AOSP equivalent, so they stay stubbed and report failure honestly rather
+ * than pretending to succeed.
+ */
 public final class OplusEdrUtils {
     public static final int DOLBY_OFF_WITHOUT_ANIMATION = 131073;
     public static final int DOLBY_OFF_WITH_ANIMATION = 131072;
@@ -46,11 +53,15 @@ public final class OplusEdrUtils {
     }
 
     public static SurfaceControl getSurfaceControl(View view) {
-        return null;
+        if (view == null) {
+            return null;
+        }
+        final ViewRootImpl viewRoot = view.getViewRootImpl();
+        return viewRoot == null ? null : viewRoot.getSurfaceControl();
     }
 
     public static SurfaceControl getBlastSurfaceControl(SurfaceView view) {
-        return null;
+        return view == null ? null : view.getSurfaceControl();
     }
 
     public static int getLocalHdrVersion() {
@@ -74,22 +85,27 @@ public final class OplusEdrUtils {
         }
     }
 
+    // OxygenOS-private SurfaceControl extension: no AOSP equivalent.
     public static boolean setEdrFlags(SurfaceControl sc, SurfaceControl.Transaction transaction, int flags) {
         return false;
     }
 
+    // OxygenOS-private SurfaceControl extension: no AOSP equivalent.
     public static boolean setEdrImageSize(SurfaceControl sc, SurfaceControl.Transaction transaction, Size imageSize, int index) {
         return false;
     }
 
+    // OxygenOS-private SurfaceControl extension: no AOSP equivalent.
     public static boolean setEdrImageMetadata(SurfaceControl sc, SurfaceControl.Transaction transaction, byte[] metadata, int index) {
         return false;
     }
 
+    // OxygenOS-private SurfaceControl extension: no AOSP equivalent.
     public static boolean setEdrAuxiliaryImage(SurfaceControl sc, SurfaceControl.Transaction transaction, Bitmap bitmap, int index) {
         return false;
     }
 
+    // OxygenOS-private SurfaceControl extension: no AOSP equivalent.
     public static boolean setEdrViewTransform(SurfaceControl sc, SurfaceControl.Transaction transaction, OplusEdrParameters para, int index) {
         return false;
     }
@@ -98,15 +114,27 @@ public final class OplusEdrUtils {
         return SystemProperties.getBoolean("persist.sys.feature.uhdr.support", false);
     }
 
+    // OxygenOS-private SurfaceControl extension: no AOSP equivalent.
     public static boolean setEdrGainmapInfo(SurfaceControl sc, SurfaceControl.Transaction transaction, OplusSkGainmapInfo info, int index) {
         return false;
     }
 
+    // OxygenOS-private SurfaceControl extension: no AOSP equivalent.
     public static boolean setEdrAnimDuration(SurfaceControl sc, SurfaceControl.Transaction transaction, int enterDuration, int exitDuration) {
         return false;
     }
 
     public static boolean setEdrSdrRatio(SurfaceControl sc, SurfaceControl.Transaction transaction, float edrSdrRatio) {
-        return false;
+        if (sc == null || !sc.isValid() || transaction == null) {
+            return false;
+        }
+        // setDesiredHdrHeadroom accepts 0.0f (no headroom requested) or a finite
+        // ratio >= 1.0f, and throws for anything else. Reject out-of-range input
+        // here rather than letting it become an exception in the caller.
+        if (!Float.isFinite(edrSdrRatio) || (edrSdrRatio != 0.0f && edrSdrRatio < 1.0f)) {
+            return false;
+        }
+        transaction.setDesiredHdrHeadroom(sc, edrSdrRatio);
+        return true;
     }
 }
