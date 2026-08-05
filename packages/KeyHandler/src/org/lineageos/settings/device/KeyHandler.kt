@@ -74,6 +74,10 @@ class KeyHandler(private val context: Context) : DeviceKeyHandler {
             return event
         }
 
+        if (event.scanCode == PLUS_KEY_SCANCODE) {
+            return handlePlusKey(event)
+        }
+
         val deviceName = event.device.name
 
         if (deviceName != "oplus,hall_tri_state_key" && deviceName != "oplus,tri-state-key") {
@@ -86,7 +90,13 @@ class KeyHandler(private val context: Context) : DeviceKeyHandler {
     }
 
     private fun populateKeyState(firstRun: Boolean) {
-        when (File("/proc/tristatekey/tri_state").readText().trim()) {
+        val node = File("/proc/tristatekey/tri_state")
+        if (!node.exists()) {
+            // No three-position slider on this generation; nothing to restore.
+            return
+        }
+
+        when (node.readText().trim()) {
             "1" -> handleMode(POSITION_TOP, firstRun)
             "2" -> handleMode(POSITION_MIDDLE, firstRun)
             "3" -> handleMode(POSITION_BOTTOM, firstRun)
@@ -117,49 +127,70 @@ class KeyHandler(private val context: Context) : DeviceKeyHandler {
             }
 
         executorService.submit {
-            when (mode) {
-                AudioManager.RINGER_MODE_SILENT -> {
-                    setZenMode(Settings.Global.ZEN_MODE_OFF)
-                    audioManager.ringerModeInternal = mode
-                    if (muteMedia) {
-                        audioManager.adjustVolume(AudioManager.ADJUST_MUTE, 0)
-                        wasMuted = true
-                    }
-                }
-                AudioManager.RINGER_MODE_VIBRATE,
-                AudioManager.RINGER_MODE_NORMAL -> {
-                    setZenMode(Settings.Global.ZEN_MODE_OFF)
-                    audioManager.ringerModeInternal = mode
-                    if (muteMedia && wasMuted) {
-                        audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0)
-                    }
-                }
-                ZEN_PRIORITY_ONLY,
-                ZEN_TOTAL_SILENCE,
-                ZEN_ALARMS_ONLY -> {
-                    audioManager.ringerModeInternal = AudioManager.RINGER_MODE_NORMAL
-                    setZenMode(mode - ZEN_OFFSET)
-                    if (muteMedia && wasMuted) {
-                        audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0)
-                    }
-                }
-                TORCH_ON,
-                TORCH_OFF -> {
-                    val cameraId =
-                        cameraManager.cameraIdList.firstOrNull { id ->
-                            cameraManager
-                                .getCameraCharacteristics(id)
-                                .get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
-                        }
-                    if (cameraId != null) {
-                        cameraManager.setTorchMode(cameraId, mode == TORCH_ON)
-                    }
-                }
-            }
+            applyAction(mode, muteMedia)
 
             if (!firstRun) {
                 if (showDialog) sendNotification(position, mode)
                 vibrateIfNeeded(mode)
+            }
+        }
+    }
+
+    private fun handlePlusKey(event: KeyEvent): KeyEvent? {
+        val mode = sharedPreferences.getString(PLUS_KEY_ACTION, ACTION_NONE.toString())!!.toInt()
+        if (mode == ACTION_NONE) {
+            // Leave the event alone so the key keeps whatever the keylayout assigns it.
+            return event
+        }
+
+        val muteMedia = sharedPreferences.getBoolean(MUTE_MEDIA_WITH_SILENT, false)
+
+        executorService.submit {
+            applyAction(mode, muteMedia)
+            vibrateIfNeeded(mode)
+        }
+
+        return null
+    }
+
+    private fun applyAction(mode: Int, muteMedia: Boolean) {
+        when (mode) {
+            AudioManager.RINGER_MODE_SILENT -> {
+                setZenMode(Settings.Global.ZEN_MODE_OFF)
+                audioManager.ringerModeInternal = mode
+                if (muteMedia) {
+                    audioManager.adjustVolume(AudioManager.ADJUST_MUTE, 0)
+                    wasMuted = true
+                }
+            }
+            AudioManager.RINGER_MODE_VIBRATE,
+            AudioManager.RINGER_MODE_NORMAL -> {
+                setZenMode(Settings.Global.ZEN_MODE_OFF)
+                audioManager.ringerModeInternal = mode
+                if (muteMedia && wasMuted) {
+                    audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0)
+                }
+            }
+            ZEN_PRIORITY_ONLY,
+            ZEN_TOTAL_SILENCE,
+            ZEN_ALARMS_ONLY -> {
+                audioManager.ringerModeInternal = AudioManager.RINGER_MODE_NORMAL
+                setZenMode(mode - ZEN_OFFSET)
+                if (muteMedia && wasMuted) {
+                    audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0)
+                }
+            }
+            TORCH_ON,
+            TORCH_OFF -> {
+                val cameraId =
+                    cameraManager.cameraIdList.firstOrNull { id ->
+                        cameraManager
+                            .getCameraCharacteristics(id)
+                            .get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+                    }
+                if (cameraId != null) {
+                    cameraManager.setTorchMode(cameraId, mode == TORCH_ON)
+                }
             }
         }
     }
@@ -193,6 +224,13 @@ class KeyHandler(private val context: Context) : DeviceKeyHandler {
         const val POSITION_TOP = 1
         const val POSITION_MIDDLE = 2
         const val POSITION_BOTTOM = 3
+
+        // Plus Key. This generation replaced the three-position alert slider with a
+        // single programmable key, which enumerates as BTN_TRIGGER_HAPPY32 on gpio-keys
+        // and is assigned ASSIST by the device keylayout.
+        private const val PLUS_KEY_SCANCODE = 735
+        private const val PLUS_KEY_ACTION = "config_plus_key_action"
+        const val ACTION_NONE = -1
 
         // Preference keys
         private const val ALERT_SLIDER_TOP_KEY = "config_top_position"

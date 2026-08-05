@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: 2026 The LineageOS Project
+    SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <string name="plus_key_category_title">Plus Key</string>
+    <string name="plus_key_action_title">Press action</string>
+    <string name="plus_key_selection_dialog_title">Plus Key action</string>
+</resources>
