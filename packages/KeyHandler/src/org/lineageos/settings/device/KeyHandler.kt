@@ -17,11 +17,15 @@ import android.media.AudioSystem
 import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.provider.MediaStore
 import android.provider.Settings
 import android.view.KeyEvent
+import android.view.ViewConfiguration
 import com.android.internal.os.DeviceKeyHandler
 import java.io.File
 import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 
 class KeyHandler(private val context: Context) : DeviceKeyHandler {
     private val audioManager = context.getSystemService(AudioManager::class.java)!!
@@ -39,6 +43,29 @@ class KeyHandler(private val context: Context) : DeviceKeyHandler {
             )
 
     private val executorService = Executors.newSingleThreadExecutor()
+    private val scheduler = Executors.newSingleThreadScheduledExecutor()
+
+    // Plus Key press-length state. A single physical key serves two mappings, so the
+    // short action can only be resolved once the key is released without the long
+    // press having already fired.
+    private var longPressFuture: ScheduledFuture<*>? = null
+    private var longPressFired = false
+
+    // Torch state has to be observed rather than assumed: the flashlight can also be
+    // toggled from the tile or another app, and a toggle that tracks its own private
+    // boolean gets out of step the first time that happens.
+    private var torchEnabled = false
+    private val torchCallback =
+        object : CameraManager.TorchCallback() {
+            override fun onTorchModeChanged(cameraId: String, enabled: Boolean) {
+                if (cameraId == flashCameraId) torchEnabled = enabled
+            }
+        }
+    private val flashCameraId: String? by lazy {
+        cameraManager.cameraIdList.firstOrNull { id ->
+            cameraManager.getCameraCharacteristics(id).get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+        }
+    }
 
     private var wasMuted = false
     private val broadcastReceiver =
@@ -67,15 +94,18 @@ class KeyHandler(private val context: Context) : DeviceKeyHandler {
                 addAction(Intent.ACTION_BOOT_COMPLETED)
             },
         )
+        cameraManager.registerTorchCallback(executorService, torchCallback)
     }
 
     override fun handleKeyEvent(event: KeyEvent): KeyEvent? {
-        if (event.action != KeyEvent.ACTION_DOWN) {
-            return event
-        }
-
+        // The Plus Key needs both the press and the release to tell a short press
+        // from a long one, so it is routed before the ACTION_DOWN filter below.
         if (event.scanCode == PLUS_KEY_SCANCODE) {
             return handlePlusKey(event)
+        }
+
+        if (event.action != KeyEvent.ACTION_DOWN) {
+            return event
         }
 
         val deviceName = event.device.name
@@ -137,20 +167,115 @@ class KeyHandler(private val context: Context) : DeviceKeyHandler {
     }
 
     private fun handlePlusKey(event: KeyEvent): KeyEvent? {
-        val mode = sharedPreferences.getString(PLUS_KEY_ACTION, ACTION_NONE.toString())!!.toInt()
-        if (mode == ACTION_NONE) {
-            // Leave the event alone so the key keeps whatever the keylayout assigns it.
+        val shortAction = plusKeyAction(PLUS_KEY_ACTION)
+        val longAction = plusKeyAction(PLUS_KEY_LONG_PRESS_ACTION)
+
+        // Nothing mapped: hand the event back untouched so the keylayout assignment
+        // still applies and the key keeps its stock behaviour.
+        if (shortAction == ACTION_NONE && longAction == ACTION_NONE) {
             return event
         }
 
-        val muteMedia = sharedPreferences.getBoolean(MUTE_MEDIA_WITH_SILENT, false)
+        when (event.action) {
+            KeyEvent.ACTION_DOWN -> {
+                if (event.repeatCount != 0) return null
+                longPressFired = false
+                longPressFuture?.cancel(false)
+                longPressFuture =
+                    if (longAction != ACTION_NONE) {
+                        scheduler.schedule(
+                            {
+                                longPressFired = true
+                                executorService.submit { applyPlusKeyAction(longAction) }
+                            },
+                            ViewConfiguration.getLongPressTimeout().toLong(),
+                            TimeUnit.MILLISECONDS,
+                        )
+                    } else {
+                        null
+                    }
+            }
 
-        executorService.submit {
-            applyAction(mode, muteMedia)
-            vibrateIfNeeded(mode)
+            KeyEvent.ACTION_UP -> {
+                longPressFuture?.cancel(false)
+                longPressFuture = null
+                if (!longPressFired && shortAction != ACTION_NONE) {
+                    executorService.submit { applyPlusKeyAction(shortAction) }
+                }
+                longPressFired = false
+            }
         }
 
         return null
+    }
+
+    private fun plusKeyAction(key: String) =
+        sharedPreferences.getString(key, ACTION_NONE.toString())!!.toInt()
+
+    /**
+     * Plus Key actions. A programmable shortcut button wants button actions, which is a
+     * different vocabulary from the alert slider's ringer positions - reusing those made
+     * the key able to do nothing but set ringer modes.
+     */
+    private fun applyPlusKeyAction(action: Int) {
+        when (action) {
+            PLUS_ACTION_ASSISTANT -> startActivitySafely(Intent(Intent.ACTION_ASSIST))
+            PLUS_ACTION_CAMERA ->
+                startActivitySafely(Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA))
+            PLUS_ACTION_SEARCH -> startActivitySafely(Intent(Intent.ACTION_WEB_SEARCH))
+
+            PLUS_ACTION_PLAY_PAUSE -> {
+                // Dispatch a full down/up pair; a lone down leaves the session waiting.
+                val now = android.os.SystemClock.uptimeMillis()
+                for (a in intArrayOf(KeyEvent.ACTION_DOWN, KeyEvent.ACTION_UP)) {
+                    audioManager.dispatchMediaKeyEvent(
+                        KeyEvent(now, now, a, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 0)
+                    )
+                }
+            }
+
+            PLUS_ACTION_TORCH -> flashCameraId?.let {
+                cameraManager.setTorchMode(it, !torchEnabled)
+            }
+
+            PLUS_ACTION_RINGER_CYCLE -> {
+                setZenMode(Settings.Global.ZEN_MODE_OFF)
+                val next =
+                    when (audioManager.ringerModeInternal) {
+                        AudioManager.RINGER_MODE_NORMAL -> AudioManager.RINGER_MODE_VIBRATE
+                        AudioManager.RINGER_MODE_VIBRATE -> AudioManager.RINGER_MODE_SILENT
+                        else -> AudioManager.RINGER_MODE_NORMAL
+                    }
+                audioManager.ringerModeInternal = next
+                vibrateIfNeeded(next)
+            }
+
+            PLUS_ACTION_DND ->
+                setZenMode(
+                    if (notificationManager.zenMode == Settings.Global.ZEN_MODE_OFF)
+                        Settings.Global.ZEN_MODE_IMPORTANT_INTERRUPTIONS
+                    else Settings.Global.ZEN_MODE_OFF
+                )
+
+            PLUS_ACTION_MUTE -> {
+                // Ask the system rather than tracking a private flag: media can be
+                // muted from anywhere, and a toggle over a stale guess inverts.
+                val muted = audioManager.isStreamMute(AudioManager.STREAM_MUSIC)
+                audioManager.adjustVolume(
+                    if (muted) AudioManager.ADJUST_UNMUTE else AudioManager.ADJUST_MUTE,
+                    0,
+                )
+            }
+        }
+    }
+
+    private fun startActivitySafely(intent: Intent) {
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        try {
+            context.startActivityAsUser(intent, android.os.UserHandle.CURRENT)
+        } catch (e: android.content.ActivityNotFoundException) {
+            android.util.Log.w(TAG, "no activity for ${intent.action}", e)
+        }
     }
 
     private fun applyAction(mode: Int, muteMedia: Boolean) {
@@ -230,7 +355,19 @@ class KeyHandler(private val context: Context) : DeviceKeyHandler {
         // and is assigned ASSIST by the device keylayout.
         private const val PLUS_KEY_SCANCODE = 735
         private const val PLUS_KEY_ACTION = "config_plus_key_action"
+        private const val PLUS_KEY_LONG_PRESS_ACTION = "config_plus_key_long_press_action"
         const val ACTION_NONE = -1
+
+        // Plus Key action vocabulary. Deliberately disjoint from the slider's ringer
+        // values so the two mappings cannot be confused for one another.
+        private const val PLUS_ACTION_ASSISTANT = 1
+        private const val PLUS_ACTION_CAMERA = 2
+        private const val PLUS_ACTION_SEARCH = 4
+        private const val PLUS_ACTION_PLAY_PAUSE = 5
+        private const val PLUS_ACTION_TORCH = 6
+        private const val PLUS_ACTION_RINGER_CYCLE = 7
+        private const val PLUS_ACTION_DND = 8
+        private const val PLUS_ACTION_MUTE = 9
 
         // Preference keys
         private const val ALERT_SLIDER_TOP_KEY = "config_top_position"

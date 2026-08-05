@@ -27,4 +27,32 @@
         <item>8</item>
         <item>9</item>
     </string-array>
+
+    <!-- Plus Key. A programmable shortcut button wants button actions, not the
+         alert slider's ringer positions. Values that AOSP already implements as a
+         keycode are dispatched by remapping the event so PhoneWindowManager runs
+         its normal handling; only stateful toggles are performed here. -->
+    <string-array name="plus_key_action_entries" translatable="false">
+        <item>@string/plus_key_action_none</item>
+        <item>@string/plus_key_action_assistant</item>
+        <item>@string/plus_key_action_camera</item>
+        <item>@string/plus_key_action_search</item>
+        <item>@string/plus_key_action_play_pause</item>
+        <item>@string/plus_key_action_torch</item>
+        <item>@string/plus_key_action_ringer_cycle</item>
+        <item>@string/plus_key_action_dnd</item>
+        <item>@string/plus_key_action_mute</item>
+    </string-array>
+
+    <string-array name="plus_key_action_entry_values" translatable="false">
+        <item>-1</item>
+        <item>1</item>
+        <item>2</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
+        <item>7</item>
+        <item>8</item>
+        <item>9</item>
+    </string-array>
 </resources>
