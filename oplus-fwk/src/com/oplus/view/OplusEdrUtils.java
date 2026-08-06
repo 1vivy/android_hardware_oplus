@@ -7,8 +7,11 @@ import android.util.Size;
 import android.view.SurfaceControl;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.ViewRootImpl;
 
-/* Stub implementation - OxygenOS SurfaceControl EDR extensions not available */
+/* Compatibility shim. The OxygenOS SurfaceControl EDR extensions are not available, so
+ * only the members with a 1:1 AOSP primitive are backed; the rest stay non-throwing
+ * stubs because no artifact maps OplusCamera's dex references to individual methods. */
 public final class OplusEdrUtils {
     public static final int DOLBY_OFF_WITHOUT_ANIMATION = 131073;
     public static final int DOLBY_OFF_WITH_ANIMATION = 131072;
@@ -46,11 +49,26 @@ public final class OplusEdrUtils {
     }
 
     public static SurfaceControl getSurfaceControl(View view) {
-        return null;
+        if (view == null) {
+            return null;
+        }
+        try {
+            ViewRootImpl viewRoot = view.getViewRootImpl();
+            return viewRoot == null ? null : viewRoot.getSurfaceControl();
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     public static SurfaceControl getBlastSurfaceControl(SurfaceView view) {
-        return null;
+        if (view == null) {
+            return null;
+        }
+        try {
+            return view.getRenderingSurfaceControl();
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     public static int getLocalHdrVersion() {
@@ -107,6 +125,21 @@ public final class OplusEdrUtils {
     }
 
     public static boolean setEdrSdrRatio(SurfaceControl sc, SurfaceControl.Transaction transaction, float edrSdrRatio) {
-        return false;
+        if (sc == null || transaction == null || !sc.isValid()) {
+            return false;
+        }
+        /* setDesiredHdrHeadroom throws IllegalArgumentException unless the ratio is
+         * finite and either 0 (system chooses) or >= 1.0f. Reject out-of-domain values
+         * rather than clamping: clamping would silently alter what the caller asked
+         * for, while returning false is the "not applied" answer this API already has. */
+        if (!Float.isFinite(edrSdrRatio) || (edrSdrRatio != 0.0f && edrSdrRatio < 1.0f)) {
+            return false;
+        }
+        try {
+            transaction.setDesiredHdrHeadroom(sc, edrSdrRatio);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
     }
 }
