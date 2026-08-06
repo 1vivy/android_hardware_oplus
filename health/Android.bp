@@ -1,0 +1,67 @@
+//
+// SPDX-FileCopyrightText: 2026 The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+soong_config_module_type {
+    name: "oplus_health_cc_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "oplus_health",
+    value_variables: [
+        "battery_state_of_health_path",
+        "battery_cycle_count_path",
+        "battery_first_usage_date_path",
+    ],
+    properties: ["cflags"],
+}
+
+// The oplus_chg battery-health nodes live outside /sys/class/power_supply, so
+// libhealthloop's autodetection never finds them. Each device tree declares the
+// node it has; an undeclared node simply leaves the corresponding healthd_config
+// path empty, which is the stock "unsupported" behaviour.
+oplus_health_cc_defaults {
+    name: "android.hardware.health-service.oplus-nodes",
+    soong_config_variables: {
+        battery_state_of_health_path: {
+            cflags: ["-DOPLUS_HEALTH_BATTERY_STATE_OF_HEALTH_PATH=\"%s\""],
+        },
+        battery_cycle_count_path: {
+            cflags: ["-DOPLUS_HEALTH_BATTERY_CYCLE_COUNT_PATH=\"%s\""],
+        },
+        battery_first_usage_date_path: {
+            cflags: ["-DOPLUS_HEALTH_BATTERY_FIRST_USAGE_DATE_PATH=\"%s\""],
+        },
+    },
+}
+
+cc_defaults {
+    name: "android.hardware.health-service.oplus-defaults",
+    defaults: [
+        "libhealth_aidl_impl_user",
+        "libhealth_aidl_charger_defaults",
+        "android.hardware.health-service.oplus-nodes",
+    ],
+    relative_install_path: "hw",
+    vintf_fragments: ["android.hardware.health-service.oplus.xml"],
+    srcs: ["Health.cpp"],
+    static_libs: [
+        "libhealth_aidl_impl",
+    ],
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
+}
+
+cc_binary {
+    name: "android.hardware.health-service.oplus",
+    defaults: ["android.hardware.health-service.oplus-defaults"],
+    vendor: true,
+    init_rc: ["android.hardware.health-service.oplus.rc"],
+    // Replaces, never accompanies, the stock provider: exactly one
+    // android.hardware.health.IHealth/default may exist per image.
+    overrides: [
+        "android.hardware.health-service.qti",
+        "charger",
+    ],
+}
