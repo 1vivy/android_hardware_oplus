@@ -1,0 +1,31 @@
+//
+// SPDX-FileCopyrightText: 2026 The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+cc_binary {
+    name: "oplus_ulp_aod",
+
+    init_rc: ["oplus_ulp_aod.rc"],
+
+    srcs: [
+        "UltraLowPowerAod.cpp",
+        "oplus_ulp_aod.cpp",
+    ],
+
+    local_include_dirs: ["include"],
+
+    header_libs: ["kernel_headers.oplus"],
+
+    shared_libs: [
+        "libbase",
+        "liblog",
+    ],
+
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
+
+    system_ext_specific: true,
+}

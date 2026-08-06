@@ -1,0 +1,9 @@
+service oplus-ulp-aod /system_ext/bin/oplus_ulp_aod
+    class late_start
+    user system
+    group system graphics
+    oneshot
+    disabled
+
+on property:persist.sys.oplus.ulp_aod.enabled=*
+    start oplus-ulp-aod

@@ -1,5 +1,8 @@
 # Folio daemon
 /system_ext/bin/folio-daemon    u:object_r:folio_daemon_exec:s0
 
+# Ultra low power AOD
+/system_ext/bin/oplus_ulp_aod    u:object_r:oplus_ulp_aod_exec:s0
+
 # Horae
 /system_ext/bin/horae    u:object_r:horae_exec:s0
