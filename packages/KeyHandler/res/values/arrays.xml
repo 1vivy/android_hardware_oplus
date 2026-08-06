@@ -27,4 +27,38 @@
         <item>8</item>
         <item>9</item>
     </string-array>
+
+    <!-- Plus Key. A programmable shortcut button wants button actions, not the
+         alert slider's ringer positions: reusing those left a dedicated hardware
+         key able to do nothing but pick a ringer mode. The values are disjoint
+         from the slider's so the two mappings cannot be confused for one
+         another. The assistant row is dropped at runtime when no assistant is
+         installed - see ButtonSettingsFragment. -->
+    <string-array name="plus_key_action_entries" translatable="false">
+        <item>@string/plus_key_action_none</item>
+        <item>@string/plus_key_action_assistant</item>
+        <item>@string/plus_key_action_camera</item>
+        <item>@string/plus_key_action_screenshot</item>
+        <item>@string/plus_key_action_search</item>
+        <item>@string/plus_key_action_play_pause</item>
+        <item>@string/plus_key_action_torch</item>
+        <item>@string/plus_key_action_ringer_cycle</item>
+        <item>@string/plus_key_action_dnd</item>
+        <item>@string/plus_key_action_mute</item>
+        <item>@string/plus_key_action_open_app</item>
+    </string-array>
+
+    <string-array name="plus_key_action_entry_values" translatable="false">
+        <item>-1</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
+        <item>7</item>
+        <item>8</item>
+        <item>9</item>
+        <item>10</item>
+    </string-array>
 </resources>
