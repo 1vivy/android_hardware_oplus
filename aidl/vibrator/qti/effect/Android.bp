@@ -1,3 +1,8 @@
+// The single consolidated effect-stream owner for the QTI vibrator service.
+// It carries its own built-in waveform table (VibrationEffectConfig.h, included
+// by path from effect.cpp so no device-set include dir can leave it unresolved)
+// and prefers /odm/etc/vibrator/vibrator_effect.json when the device ships one.
+// A device tree must not build a second get_effect_stream() provider.
 cc_library_shared {
     name: "liboplusvibratoreffect",
     vendor: true,
@@ -11,8 +16,4 @@ cc_library_shared {
         "libjsoncpp",
         "libutils",
     ],
-    include_dirs: select(soong_config_variable("OPLUS_LINEAGE_VIBRATOR_HAL", "INCLUDE_DIR"), {
-        any @ flag_val: [flag_val],
-        default: [],
-    }),
 }

@@ -31,7 +31,7 @@
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(*(a)))
 
-#include <VibrationEffectConfig.h>
+#include "VibrationEffectConfig.h"
 
 #include "VibrationEffectLoader.h"
 

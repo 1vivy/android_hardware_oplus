@@ -18,6 +18,10 @@ cc_library_shared {
         "libbinder_ndk",
         "android.hardware.vibrator-V1-ndk",
     ] + select(soong_config_variable("OPLUS_LINEAGE_VIBRATOR_HAL", "USE_EFFECT_STREAM"), {
+        // liboplusvibratoreffect is the only effect-stream provider this service
+        // links. A device-local libqtivibratoreffect.oplus.<device> must not be
+        // linked alongside it: two providers of get_effect_stream() would make
+        // the served waveform set depend on link order.
         true: ["liboplusvibratoreffect"],
         default: [],
     }),
