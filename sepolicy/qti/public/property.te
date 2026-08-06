@@ -1,4 +1,5 @@
 # Display
+system_public_prop(system_oplus_display_prop)
 vendor_internal_prop(system_oplus_iris_prop)
 
 # Fingerprint

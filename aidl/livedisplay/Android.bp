@@ -14,6 +14,11 @@ filegroup {
 }
 
 filegroup {
+    name: "vendor.lineage.livedisplay-oplus-dc",
+    srcs: ["DcDimming.cpp"],
+}
+
+filegroup {
     name: "vendor.lineage.livedisplay-oplus-dm",
     srcs: ["DisplayModes.cpp"],
 }
@@ -54,6 +59,7 @@ cc_binary {
         ":vendor.lineage.livedisplay-sdm-utils",
         ":vendor.lineage.livedisplay-oplus-ab",
         ":vendor.lineage.livedisplay-oplus-af",
+        ":vendor.lineage.livedisplay-oplus-dc",
         ":vendor.lineage.livedisplay-oplus-dm",
         ":vendor.lineage.livedisplay-oplus-se",
         "service.cpp",
@@ -76,6 +82,9 @@ cc_binary {
     }) + select(soong_config_variable("OPLUS_LINEAGE_LIVEDISPLAY_HAL", "ENABLE_AF"), {
         true: ["-DENABLE_AF=true"],
         default: ["-DENABLE_AF=false"],
+    }) + select(soong_config_variable("OPLUS_LINEAGE_LIVEDISPLAY_HAL", "ENABLE_DC"), {
+        true: ["-DENABLE_DC=true"],
+        default: ["-DENABLE_DC=false"],
     }) + select(soong_config_variable("OPLUS_LINEAGE_LIVEDISPLAY_HAL", "ENABLE_DM"), {
         true: ["-DENABLE_DM=true"],
         default: ["-DENABLE_DM=false"],
