@@ -2,4 +2,5 @@ cc_library_headers {
     name: "kernel_headers.oplus",
     export_include_dirs: ["include"],
     vendor_available: true,
+    recovery_available: true,
 }
