@@ -1,1 +1,6 @@
 allow hal_health_default vendor_hal_charger_hwservice:hwservice_manager find;
+
+# oplus_chg publishes the battery-health attributes (state of health, cycle
+# count, first usage date) outside /sys/class/power_supply; genfs_contexts labels
+# that class vendor_sysfs_usb_supply.
+r_dir_file(hal_health_default, vendor_sysfs_usb_supply)
