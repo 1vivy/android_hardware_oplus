@@ -11,12 +11,14 @@
 #include <binder/ProcessState.h>
 #include <livedisplay/oplus/AdaptiveBacklight.h>
 #include <livedisplay/oplus/AntiFlicker.h>
+#include <livedisplay/oplus/DcDimming.h>
 #include <livedisplay/oplus/DisplayModes.h>
 #include <livedisplay/oplus/SunlightEnhancement.h>
 #include <livedisplay/sdm/PictureAdjustment.h>
 
 using ::aidl::vendor::lineage::livedisplay::AdaptiveBacklight;
 using ::aidl::vendor::lineage::livedisplay::AntiFlicker;
+using ::aidl::vendor::lineage::livedisplay::DcDimming;
 using ::aidl::vendor::lineage::livedisplay::DisplayModes;
 using ::aidl::vendor::lineage::livedisplay::SunlightEnhancement;
 using ::aidl::vendor::lineage::livedisplay::sdm::PictureAdjustment;
@@ -34,6 +36,14 @@ int main() {
     std::shared_ptr<AdaptiveBacklight> ab =
             ENABLE_AB ? ndk::SharedRefBase::make<AdaptiveBacklight>() : nullptr;
     std::shared_ptr<AntiFlicker> af = ENABLE_AF ? ndk::SharedRefBase::make<AntiFlicker>() : nullptr;
+    /*
+     * DC dimming is not a LiveDisplay interface - LiveDisplay has no
+     * DC-dimming contract - so it is driven by a system property instead of a
+     * binder object. It rides this process because /dev/oplus_display is
+     * already open here under a single sepolicy domain. See DcDimming.cpp for
+     * the ioctl subset it owns and the AntiFlicker ownership boundary.
+     */
+    std::shared_ptr<DcDimming> dc = ENABLE_DC ? std::make_shared<DcDimming>() : nullptr;
     std::shared_ptr<DisplayModes> dm =
             ENABLE_DM ? ndk::SharedRefBase::make<DisplayModes>(controller) : nullptr;
     std::shared_ptr<PictureAdjustment> pa =
@@ -69,6 +79,10 @@ int main() {
         std::string instance = std::string() + SunlightEnhancement::descriptor + "/default";
         binder_status_t status = AServiceManager_addService(se->asBinder().get(), instance.c_str());
         CHECK_EQ(status, STATUS_OK);
+    }
+
+    if (dc) {
+        dc->start();
     }
 
     ABinderProcess_joinThreadPool();
