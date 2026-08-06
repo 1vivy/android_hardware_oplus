@@ -10,6 +10,7 @@
     oplus_security_permission_service
     osense_service
     system_fingerprint_prop
+    system_oplus_display_prop
     system_oplus_iris_prop
     system_oplus_project_prop
     system_oplus_radio_prop
