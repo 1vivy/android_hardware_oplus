@@ -1,0 +1,8 @@
+type oplus_ulp_aod, domain, coredomain;
+type oplus_ulp_aod_exec, system_file_type, exec_type, file_type;
+
+init_daemon_domain(oplus_ulp_aod)
+
+get_prop(oplus_ulp_aod, system_prop)
+
+allow oplus_ulp_aod graphics_device:chr_file rw_file_perms;
