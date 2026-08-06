@@ -72,6 +72,22 @@ namespace vibrator {
 
 #define test_bit(bit, array) ((array)[(bit) / 8] & (1 << ((bit) % 8)))
 
+/*
+ * An effect id outside the standard AIDL prebaked range is an OEM id. It is
+ * playable only when the effect-stream owner actually holds a waveform for it,
+ * either from /odm/etc/vibrator/vibrator_effect.json or from the built-in
+ * table. Unknown ids stay unsupported instead of being silently coerced into a
+ * standard effect.
+ */
+static bool hasEffectStream(int effectId __attribute__((unused))) {
+#ifdef USE_EFFECT_STREAM
+    if (effectId < 0) return false;
+    return get_effect_stream(static_cast<uint32_t>(effectId)) != nullptr;
+#else
+    return false;
+#endif
+}
+
 #define LED_DEVICE "/sys/class/leds/vibrator"
 
 InputFFDevice::InputFFDevice() {
@@ -526,14 +542,21 @@ ndk::ScopedAStatus Vibrator::perform(Effect effect, EffectStrength es,
         // Return magic value for play length so that we won't end up calling on() / off()
         playLengthMs = 150;
     } else {
-        if (effect < Effect::CLICK || effect > Effect::HEAVY_CLICK)
-            return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_UNSUPPORTED_OPERATION));
+        const int effectId = static_cast<int>(effect);
 
         if (es != EffectStrength::LIGHT && es != EffectStrength::MEDIUM &&
             es != EffectStrength::STRONG)
             return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_UNSUPPORTED_OPERATION));
 
-        ret = ff.playEffect((static_cast<int>(effect)), es, &playLengthMs);
+        if (effect < Effect::CLICK || effect > Effect::HEAVY_CLICK) {
+            if (!hasEffectStream(effectId)) {
+                ALOGD("Vibrator perform: no effect stream for OEM effect %d", effectId);
+                return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_UNSUPPORTED_OPERATION));
+            }
+            ALOGD("Vibrator perform: OEM effect %d served from the effect stream", effectId);
+        }
+
+        ret = ff.playEffect(effectId, es, &playLengthMs);
         if (ret != 0) return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_SERVICE_SPECIFIC));
     }
 
