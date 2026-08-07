@@ -38,7 +38,7 @@ TEST(AdfrConfigTest, PacksDocumentedInfinitiPayloadWhenConfigIsValid) {
     EXPECT_EQ((*payload)[1], 20250925);
 }
 
-TEST(AdfrConfigTest, RejectsConfigWhenVersionDiffers) {
+TEST(AdfrConfigTest, RejectsConfigWhenVersionIsOlderThanMinimum) {
     // Given
     std::string xml;
     ASSERT_TRUE(android::base::ReadFileToString(TestData("infiniti-adfr.xml"), &xml));
@@ -51,6 +51,22 @@ TEST(AdfrConfigTest, RejectsConfigWhenVersionDiffers) {
     // Then
     EXPECT_FALSE(payload);
     EXPECT_FALSE(error.empty());
+}
+
+TEST(AdfrConfigTest, AcceptsConfigWhenVersionIsNewerThanMinimum) {
+    // Given
+    std::string xml;
+    ASSERT_TRUE(android::base::ReadFileToString(TestData("infiniti-adfr.xml"), &xml));
+    xml.replace(xml.find("20250925"), 8, "20260401");
+
+    // When
+    std::string error;
+    const auto payload = ParseAdfrConfig(xml, &error);
+
+    // Then
+    ASSERT_TRUE(payload) << error;
+    EXPECT_EQ((*payload)[1], 20260401);
+    EXPECT_EQ(payload->size(), 225U);
 }
 
 }  // namespace
