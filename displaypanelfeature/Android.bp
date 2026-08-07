@@ -4,6 +4,7 @@ cc_library_static {
     host_supported: true,
     srcs: [
         "AdfrConfig.cpp",
+        "AdfrFloorPolicy.cpp",
         "FeatureRegistry.cpp",
     ],
     export_include_dirs: ["."],
@@ -41,5 +42,32 @@ cc_test_host {
     test_options: {
         unit_test: true,
     },
+    cflags: ["-Wall", "-Werror"],
+}
+
+cc_test_host {
+    name: "displaypanelfeature_floor_policy_test",
+    srcs: ["tests/AdfrFloorPolicyTest.cpp"],
+    static_libs: ["liboplus_displaypanelfeature_config"],
+    shared_libs: [
+        "libbase",
+        "libtinyxml2",
+    ],
+    test_options: {
+        unit_test: true,
+    },
+    cflags: ["-Wall", "-Werror"],
+}
+
+cc_binary {
+    name: "adfr-floor-daemon",
+    vendor: true,
+    init_rc: ["adfr-floor-daemon.rc"],
+    srcs: ["floor_daemon.cpp"],
+    static_libs: ["liboplus_displaypanelfeature_config"],
+    shared_libs: [
+        "libbase",
+        "libtinyxml2",
+    ],
     cflags: ["-Wall", "-Werror"],
 }
