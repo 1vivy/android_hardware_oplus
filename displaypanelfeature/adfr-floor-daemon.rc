@@ -1,0 +1,12 @@
+on early-boot
+    # min_fps ships root:root 0644 (unlike its displaypanelfeature-service siblings,
+    # which the stock ODM init already chowns system:system in
+    # vendor.oplus.hardware.displaypanelfeature-service.rc). Grant the same
+    # system:system access here rather than running this daemon as root.
+    chown system system /sys/kernel/oplus_display/min_fps
+
+service adfr-floor-daemon /vendor/bin/adfr-floor-daemon
+    class hal
+    user system
+    group system
+    oneshot
