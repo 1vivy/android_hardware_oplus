@@ -23,6 +23,7 @@ cc_binary {
     shared_libs: [
         "libbase",
         "libbinder_ndk",
+        "libtinyxml2",
         "vendor.oplus.hardware.displaypanelfeature-V1-ndk",
     ],
     cflags: ["-Wall", "-Werror"],
@@ -32,7 +33,10 @@ cc_test_host {
     name: "displaypanelfeature_config_test",
     srcs: ["tests/AdfrConfigTest.cpp"],
     static_libs: ["liboplus_displaypanelfeature_config"],
-    shared_libs: ["libbase"],
+    shared_libs: [
+        "libbase",
+        "libtinyxml2",
+    ],
     data: ["tests/data/*"],
     test_options: {
         unit_test: true,
