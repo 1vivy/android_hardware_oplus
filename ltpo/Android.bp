@@ -16,6 +16,7 @@ android_app {
 
     static_libs: [
         "SettingsLib",
+        "vendor.oplus.hardware.displaypanelfeature-V1-java",
     ],
 
     optimize: {

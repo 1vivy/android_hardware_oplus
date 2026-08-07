@@ -43,8 +43,6 @@ public class LTPOSettings extends SettingsBasePreferenceFragment
 
     private static final String KEY_LTPO_SWITCH = "ltpo_enabled";
 
-    private static final String FILE_LTPO = "/sys/kernel/oplus_display/adfr_config";
-
     private SwitchPreferenceCompat mLTPOSwitch;
 
     @Override
@@ -54,11 +52,9 @@ public class LTPOSettings extends SettingsBasePreferenceFragment
         SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(getContext());
 
         mLTPOSwitch = (SwitchPreferenceCompat) findPreference(KEY_LTPO_SWITCH);
-        if (Utils.fileWritable(FILE_LTPO)) {
+        if (Utils.isLtpoSupported()) {
             mLTPOSwitch.setEnabled(true);
-            String current = Utils.getFileValue(FILE_LTPO, "0x0");
-            boolean enabled = !"0x0".equals(current != null ? current.trim() : null);
-            mLTPOSwitch.setChecked(sharedPrefs.getBoolean(KEY_LTPO_SWITCH, enabled));
+            mLTPOSwitch.setChecked(sharedPrefs.getBoolean(KEY_LTPO_SWITCH, true));
             mLTPOSwitch.setOnPreferenceChangeListener(this);
         } else {
             mLTPOSwitch.setEnabled(false);
@@ -70,8 +66,10 @@ public class LTPOSettings extends SettingsBasePreferenceFragment
         if (preference == mLTPOSwitch) {
             boolean enabled = (Boolean) newValue;
             SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+            if (!Utils.setLtpoEnabled(enabled)) {
+                return false;
+            }
             sharedPrefs.edit().putBoolean(KEY_LTPO_SWITCH, enabled).apply();
-    	    Utils.writeValue(FILE_LTPO, enabled ? "0x109f" : "0x0");
             return true;
         }
 
@@ -79,12 +77,10 @@ public class LTPOSettings extends SettingsBasePreferenceFragment
     }
 
     public static void restoreLTPOSetting(Context context) {
-        if (Utils.fileWritable(FILE_LTPO)) {
+        if (Utils.isLtpoSupported()) {
             SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(context);
-            String current = Utils.getFileValue(FILE_LTPO, "0x0");
-            boolean enabled = !"0x0".equals(current != null ? current.trim() : null);
-            boolean value = sharedPrefs.getBoolean(KEY_LTPO_SWITCH, enabled);
-            Utils.writeValue(FILE_LTPO, value ? "0x109f" : "0x0");
+            boolean value = sharedPrefs.getBoolean(KEY_LTPO_SWITCH, true);
+            Utils.setLtpoEnabled(value);
         }
     }
 }
