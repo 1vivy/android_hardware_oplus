@@ -29,8 +29,11 @@ namespace sdm_utils = ::aidl::vendor::lineage::livedisplay::sdm::utils;
 
 namespace {
 
-// The SDM-backed constructors abort when their feature is unavailable, taking
-// unrelated components down. Probe their private readiness contracts first.
+// PictureAdjustment LOG(FATAL)s in its constructor when its feature is
+// unavailable, which aborts the process and takes unrelated components down.
+// Probe first. This mirrors that class's private isReady() and must be kept in
+// step with
+// hardware/lineage/interfaces/livedisplay/aidl/sdm/PictureAdjustment.cpp.
 
 bool PictureAdjustmentReady(const std::shared_ptr<SDMController>& controller) {
     if (controller == nullptr) {
@@ -49,23 +52,6 @@ bool PictureAdjustmentReady(const std::shared_ptr<SDMController>& controller) {
     return r.hue.max != 0 && r.hue.min != 0 && r.saturation.max != 0.f && r.saturation.min != 0.f &&
            r.intensity.max != 0.f && r.intensity.min != 0.f && r.contrast.max != 0.f &&
            r.contrast.min != 0.f;
-}
-
-bool DisplayModesReady(const std::shared_ptr<SDMController>& controller) {
-    if (controller == nullptr) {
-        return false;
-    }
-    if (sdm_utils::CheckFeatureVersion(controller, sdm_utils::FEATURE_VER_SW_SAVEMODES_API) !=
-        android::OK) {
-        return false;
-    }
-
-    int32_t count = 0;
-    if (controller->getNumDisplayModes(&count) != android::OK) {
-        return false;
-    }
-
-    return count > 0;
 }
 
 }  // namespace
@@ -90,18 +76,14 @@ int main() {
      * the ioctl subset it owns and the AntiFlicker ownership boundary.
      */
     std::shared_ptr<DcDimming> dc = ENABLE_DC ? std::make_shared<DcDimming>() : nullptr;
-    bool dm_ready = ENABLE_DM && DisplayModesReady(controller);
     bool pa_ready = ENABLE_PA && PictureAdjustmentReady(controller);
 
-    if (ENABLE_DM && !dm_ready) {
-        LOG(WARNING) << "DisplayModes backend not ready; skipping it and serving the rest.";
-    }
     if (ENABLE_PA && !pa_ready) {
-        LOG(WARNING) << "PictureAdjustment backend not ready; skipping it and serving the rest.";
+        LOG(WARNING) << "PictureAdjustment backend not ready; serving the rest without it.";
     }
 
     std::shared_ptr<DisplayModes> dm =
-            dm_ready ? ndk::SharedRefBase::make<DisplayModes>(controller) : nullptr;
+            ENABLE_DM ? ndk::SharedRefBase::make<DisplayModes>(controller) : nullptr;
     std::shared_ptr<PictureAdjustment> pa =
             pa_ready ? ndk::SharedRefBase::make<PictureAdjustment>(controller) : nullptr;
     std::shared_ptr<SunlightEnhancement> se =
