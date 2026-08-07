@@ -9,6 +9,7 @@ vendor.oplus.camera.           u:object_r:vendor_camera_prop:s0
 vendor.oppo.camera.            u:object_r:vendor_camera_prop:s0
 
 # Display
+persist.vendor.displaypanel.       u:object_r:vendor_displaypanel_publisher_prop:s0
 vendor.dps.dump.composerpid    u:object_r:vendor_display_prop:s0
 
 # eSIM

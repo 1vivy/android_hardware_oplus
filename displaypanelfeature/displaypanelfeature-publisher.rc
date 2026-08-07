@@ -1,0 +1,4 @@
+service displaypanelfeature-publisher /vendor/bin/displaypanelfeature-publisher
+    class hal
+    user system
+    group system

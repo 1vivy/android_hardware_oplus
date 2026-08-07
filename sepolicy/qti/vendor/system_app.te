@@ -3,6 +3,7 @@ r_dir_file(system_app, vendor_sysfs_usb_supply)
 
 # LTPO Settings
 rw_dir_file(system_app, vendor_sysfs_graphics)
+hal_client_domain(system_app, vendor_hal_oplus_displaypanelfeature)
 
 # Gamespace
 r_dir_file(system_app, vendor_sysfs_sde_crtc)

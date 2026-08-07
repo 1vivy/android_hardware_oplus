@@ -1,0 +1,11 @@
+type vendor_displaypanelfeature_publisher, domain;
+type vendor_displaypanelfeature_publisher_exec, exec_type, vendor_file_type, file_type;
+
+init_daemon_domain(vendor_displaypanelfeature_publisher)
+
+binder_use(vendor_displaypanelfeature_publisher)
+vndbinder_use(vendor_displaypanelfeature_publisher)
+hal_client_domain(vendor_displaypanelfeature_publisher, vendor_hal_oplus_displaypanelfeature)
+
+get_prop(vendor_displaypanelfeature_publisher, vendor_displaypanel_publisher_prop)
+r_dir_file(vendor_displaypanelfeature_publisher, vendor_configs_file)
