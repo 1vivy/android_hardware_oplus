@@ -15,7 +15,7 @@
 namespace oplus::displaypanelfeature {
 namespace {
 
-constexpr int32_t kExpectedVersion = 20250925;
+constexpr int32_t kMinimumVersion = 20250925;
 
 struct ScalarField {
     const char* name;
@@ -131,8 +131,8 @@ std::optional<AdfrPayload> ParseAdfrConfig(std::string_view xml, std::string* er
 
     AdfrPayload payload{};
     payload[0] = 1;
-    if (!ReadScalar(*config, "version", &payload[1], error) || payload[1] != kExpectedVersion) {
-        if (error->empty()) *error = "unsupported ADFR config version";
+    if (!ReadScalar(*config, "version", &payload[1], error) || payload[1] < kMinimumVersion) {
+        if (error->empty()) *error = "ADFR config version older than the supported minimum";
         return std::nullopt;
     }
     mode->QueryIntAttribute("panelid", &payload[13]);
