@@ -55,6 +55,9 @@
             </intent-filter>
         </receiver>
 
+        <service android:name=".AospLtpoBridgeService"
+            android:exported="false" />
+
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
