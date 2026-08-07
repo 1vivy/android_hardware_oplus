@@ -15,7 +15,9 @@
 #include <android/binder_process.h>
 
 #include <chrono>
+#include <cstdlib>
 #include <map>
+#include <memory>
 #include <thread>
 
 using aidl::vendor::oplus::hardware::displaypanelfeature::IDisplayPanelFeature;
