@@ -1,0 +1,40 @@
+cc_library_static {
+    name: "liboplus_displaypanelfeature_config",
+    vendor_available: true,
+    host_supported: true,
+    srcs: [
+        "AdfrConfig.cpp",
+        "FeatureRegistry.cpp",
+    ],
+    export_include_dirs: ["."],
+    shared_libs: [
+        "libbase",
+        "libtinyxml2",
+    ],
+    cflags: ["-Wall", "-Werror"],
+}
+
+cc_binary {
+    name: "displaypanelfeature-publisher",
+    vendor: true,
+    srcs: ["main.cpp"],
+    static_libs: ["liboplus_displaypanelfeature_config"],
+    shared_libs: [
+        "libbase",
+        "libbinder_ndk",
+        "vendor.oplus.hardware.displaypanelfeature-V1-ndk",
+    ],
+    cflags: ["-Wall", "-Werror"],
+}
+
+cc_test_host {
+    name: "displaypanelfeature_config_test",
+    srcs: ["tests/AdfrConfigTest.cpp"],
+    static_libs: ["liboplus_displaypanelfeature_config"],
+    shared_libs: ["libbase"],
+    data: ["tests/data/*"],
+    test_options: {
+        unit_test: true,
+    },
+    cflags: ["-Wall", "-Werror"],
+}
