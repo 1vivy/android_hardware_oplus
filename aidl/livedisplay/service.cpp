@@ -14,13 +14,59 @@
 #include <livedisplay/oplus/DisplayModes.h>
 #include <livedisplay/oplus/SunlightEnhancement.h>
 #include <livedisplay/sdm/PictureAdjustment.h>
+#include <livedisplay/sdm/Utils.h>
 
 using ::aidl::vendor::lineage::livedisplay::AdaptiveBacklight;
 using ::aidl::vendor::lineage::livedisplay::AntiFlicker;
 using ::aidl::vendor::lineage::livedisplay::DisplayModes;
 using ::aidl::vendor::lineage::livedisplay::SunlightEnhancement;
+using ::aidl::vendor::lineage::livedisplay::sdm::HsicRanges;
 using ::aidl::vendor::lineage::livedisplay::sdm::PictureAdjustment;
 using ::aidl::vendor::lineage::livedisplay::sdm::SDMController;
+namespace sdm_utils = ::aidl::vendor::lineage::livedisplay::sdm::utils;
+
+namespace {
+
+// The SDM-backed constructors abort when their feature is unavailable, taking
+// unrelated components down. Probe their private readiness contracts first.
+
+bool PictureAdjustmentReady(const std::shared_ptr<SDMController>& controller) {
+    if (controller == nullptr) {
+        return false;
+    }
+    if (sdm_utils::CheckFeatureVersion(controller, sdm_utils::FEATURE_VER_SW_PA_API) !=
+        android::OK) {
+        return false;
+    }
+
+    HsicRanges r{};
+    if (controller->getGlobalPaRange(&r) != android::OK) {
+        return false;
+    }
+
+    return r.hue.max != 0 && r.hue.min != 0 && r.saturation.max != 0.f && r.saturation.min != 0.f &&
+           r.intensity.max != 0.f && r.intensity.min != 0.f && r.contrast.max != 0.f &&
+           r.contrast.min != 0.f;
+}
+
+bool DisplayModesReady(const std::shared_ptr<SDMController>& controller) {
+    if (controller == nullptr) {
+        return false;
+    }
+    if (sdm_utils::CheckFeatureVersion(controller, sdm_utils::FEATURE_VER_SW_SAVEMODES_API) !=
+        android::OK) {
+        return false;
+    }
+
+    int32_t count = 0;
+    if (controller->getNumDisplayModes(&count) != android::OK) {
+        return false;
+    }
+
+    return count > 0;
+}
+
+}  // namespace
 
 int main() {
     android::ProcessState::self()->setThreadPoolMaxThreadCount(1);
@@ -34,10 +80,20 @@ int main() {
     std::shared_ptr<AdaptiveBacklight> ab =
             ENABLE_AB ? ndk::SharedRefBase::make<AdaptiveBacklight>() : nullptr;
     std::shared_ptr<AntiFlicker> af = ENABLE_AF ? ndk::SharedRefBase::make<AntiFlicker>() : nullptr;
+    bool dm_ready = ENABLE_DM && DisplayModesReady(controller);
+    bool pa_ready = ENABLE_PA && PictureAdjustmentReady(controller);
+
+    if (ENABLE_DM && !dm_ready) {
+        LOG(WARNING) << "DisplayModes backend not ready; skipping it and serving the rest.";
+    }
+    if (ENABLE_PA && !pa_ready) {
+        LOG(WARNING) << "PictureAdjustment backend not ready; skipping it and serving the rest.";
+    }
+
     std::shared_ptr<DisplayModes> dm =
-            ENABLE_DM ? ndk::SharedRefBase::make<DisplayModes>(controller) : nullptr;
+            dm_ready ? ndk::SharedRefBase::make<DisplayModes>(controller) : nullptr;
     std::shared_ptr<PictureAdjustment> pa =
-            ENABLE_PA ? ndk::SharedRefBase::make<PictureAdjustment>(controller) : nullptr;
+            pa_ready ? ndk::SharedRefBase::make<PictureAdjustment>(controller) : nullptr;
     std::shared_ptr<SunlightEnhancement> se =
             ENABLE_SE ? ndk::SharedRefBase::make<SunlightEnhancement>() : nullptr;
 
