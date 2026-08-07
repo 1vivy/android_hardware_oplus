@@ -44,5 +44,9 @@ public class Startup extends BroadcastReceiver {
 
         Log.d(TAG, "Restoring LTPO settings");
         LTPOSettings.restoreLTPOSetting(context);
+
+        if (Utils.isLtpoSupported()) {
+            context.startService(new Intent(context, AospLtpoBridgeService.class));
+        }
     }
 }
