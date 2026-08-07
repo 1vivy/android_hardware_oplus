@@ -401,7 +401,7 @@ aidl_interface {
             enabled: true,
         },
         java: {
-            enabled: false,
+            sdk_version: "module_current",
         },
     },
     versions_with_info: [
