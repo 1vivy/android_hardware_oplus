@@ -17,6 +17,7 @@ cc_library_static {
 cc_binary {
     name: "displaypanelfeature-publisher",
     vendor: true,
+    init_rc: ["displaypanelfeature-publisher.rc"],
     srcs: ["main.cpp"],
     static_libs: ["liboplus_displaypanelfeature_config"],
     shared_libs: [
