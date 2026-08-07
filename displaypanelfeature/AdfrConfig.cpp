@@ -10,9 +10,7 @@
 
 #include <array>
 #include <charconv>
-#include <span>
 #include <string>
-#include <vector>
 
 namespace oplus::displaypanelfeature {
 namespace {
@@ -84,8 +82,8 @@ bool ReadScalar(const tinyxml2::XMLElement& parent, const char* name, int32_t* v
     return true;
 }
 
-bool ReadTable(const tinyxml2::XMLElement& mode, const TableField& field,
-               std::span<int32_t> destination, std::string* error) {
+bool ReadTable(const tinyxml2::XMLElement& mode, const TableField& field, int32_t* destination,
+               std::string* error) {
     const auto* element = mode.FirstChildElement(field.name);
     if (element == nullptr || element->GetText() == nullptr) {
         *error = std::string("missing table field: ") + field.name;
@@ -142,8 +140,7 @@ std::optional<AdfrPayload> ParseAdfrConfig(std::string_view xml, std::string* er
         if (!ReadScalar(*mode, field.name, &payload[field.index], error)) return std::nullopt;
     }
     for (const auto& field : kTables) {
-        auto destination = std::span(payload).subspan(field.offset, field.capacity);
-        if (!ReadTable(*mode, field, destination, error)) return std::nullopt;
+        if (!ReadTable(*mode, field, payload.data() + field.offset, error)) return std::nullopt;
     }
     return payload;
 }
