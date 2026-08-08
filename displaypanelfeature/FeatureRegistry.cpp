@@ -9,6 +9,9 @@
 #include <tinyxml2.h>
 
 #include <charconv>
+#include <cerrno>
+#include <cmath>
+#include <cstdlib>
 #include <map>
 #include <string_view>
 
@@ -69,7 +72,10 @@ std::optional<std::vector<FeatureEntry>> LoadFeatureRegistry(const std::string& 
     const std::map<std::string_view, ValueSource> sources = {
             {"property", ValueSource::kProperty},
             {"adfr-xml", ValueSource::kAdfrXml},
-            {"support-probe", ValueSource::kSupportProbe}};
+            {"support-probe", ValueSource::kSupportProbe},
+            {"sysfs-node", ValueSource::kSysfsNode}};
+    const std::map<std::string_view, RowStatus> statuses = {
+            {"active", RowStatus::kActive}, {"reserved", RowStatus::kReserved}};
 
     std::vector<FeatureEntry> entries;
     for (auto* node = root->FirstChildElement("feature"); node != nullptr;
@@ -88,7 +94,39 @@ std::optional<std::vector<FeatureEntry>> LoadFeatureRegistry(const std::string& 
             *error = "property source is missing its property name";
             return std::nullopt;
         }
-        entries.push_back({id, *direction, *shape, *source, property == nullptr ? "" : property});
+        const char* path = node->Attribute("path");
+        if (*source == ValueSource::kSysfsNode && (path == nullptr || path[0] == '\0')) {
+            *error = "sysfs-node source is missing its path";
+            return std::nullopt;
+        }
+        double scale = 1.0;
+        double offset = 0.0;
+        node->QueryDoubleAttribute("scale", &scale);
+        node->QueryDoubleAttribute("offset", &offset);
+        const char* producer = node->Attribute("producer");
+        RowStatus status = RowStatus::kActive;
+        const char* statusText = node->Attribute("status");
+        if (statusText != nullptr) {
+            const auto parsedStatus = ParseEnum(statusText, statuses);
+            if (!parsedStatus) {
+                *error = "invalid status attribute";
+                return std::nullopt;
+            }
+            status = *parsedStatus;
+        }
+
+        FeatureEntry entry;
+        entry.id = id;
+        entry.direction = *direction;
+        entry.shape = *shape;
+        entry.source = *source;
+        entry.property = property == nullptr ? "" : property;
+        entry.path = path == nullptr ? "" : path;
+        entry.scale = scale;
+        entry.offset = offset;
+        entry.producer = producer == nullptr ? "" : producer;
+        entry.status = status;
+        entries.push_back(std::move(entry));
     }
     if (entries.empty()) {
         *error = "feature registry is empty";
@@ -118,6 +156,28 @@ std::optional<std::vector<int32_t>> ParsePropertyPayload(const FeatureEntry& ent
         remaining.remove_prefix(separator);
     }
     return payload.size() == expected ? std::optional(std::move(payload)) : std::nullopt;
+}
+
+std::optional<std::vector<int32_t>> ParseSysfsPayload(const FeatureEntry& entry,
+                                                      const std::string& value) {
+    if (entry.source != ValueSource::kSysfsNode || PayloadCount(entry.shape) != 1) {
+        return std::nullopt;
+    }
+    std::string_view trimmed(value);
+    const auto first = trimmed.find_first_not_of(" \t\r\n");
+    if (first == std::string_view::npos) return std::nullopt;
+    trimmed.remove_prefix(first);
+    const auto last = trimmed.find_last_not_of(" \t\r\n");
+    trimmed = trimmed.substr(0, last + 1);
+
+    const std::string token(trimmed);
+    char* end = nullptr;
+    errno = 0;
+    const double parsed = std::strtod(token.c_str(), &end);
+    if (end != token.c_str() + token.size() || errno == ERANGE) return std::nullopt;
+
+    const double scaled = parsed * entry.scale + entry.offset;
+    return std::vector<int32_t>{static_cast<int32_t>(std::lround(scaled))};
 }
 
 }  // namespace oplus::displaypanelfeature
