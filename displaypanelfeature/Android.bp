@@ -46,6 +46,21 @@ cc_test_host {
 }
 
 cc_test_host {
+    name: "displaypanelfeature_registry_test",
+    srcs: ["tests/FeatureRegistryTest.cpp"],
+    static_libs: ["liboplus_displaypanelfeature_config"],
+    shared_libs: [
+        "libbase",
+        "libtinyxml2",
+    ],
+    data: ["tests/data/*"],
+    test_options: {
+        unit_test: true,
+    },
+    cflags: ["-Wall", "-Werror"],
+}
+
+cc_test_host {
     name: "displaypanelfeature_floor_policy_test",
     srcs: ["tests/AdfrFloorPolicyTest.cpp"],
     static_libs: ["liboplus_displaypanelfeature_config"],

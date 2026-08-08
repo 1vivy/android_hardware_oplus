@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<displayPanelFeatures>
+    <feature id="29" direction="get" payload="scalar" source="sysfs-node"
+             path="/sys/kernel/oplus_display/oplus_brightness" status="bogus" />
+</displayPanelFeatures>
