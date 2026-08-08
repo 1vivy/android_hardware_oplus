@@ -1,0 +1,1 @@
+genfscon proc /magnetic_cover u:object_r:proc_magnetic_cover:s0
