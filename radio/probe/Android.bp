@@ -1,0 +1,25 @@
+//
+// SPDX-FileCopyrightText: 2026 The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+cc_binary {
+    name: "oplus_radio_probe",
+    vendor: true,
+    srcs: [
+        "RadioProbe.cpp",
+        "RadioCallbacks.cpp",
+    ],
+    shared_libs: [
+        "libbase",
+        "libbinder_ndk",
+        "vendor.oplus.hardware.subsys_radio-V9-ndk",
+    ],
+}
+
+cc_test_host {
+    name: "oplus_radio_probe_test",
+    srcs: ["tests/RadioProbeTest.cpp"],
+    local_include_dirs: ["."],
+    test_suites: ["general-tests"],
+}
