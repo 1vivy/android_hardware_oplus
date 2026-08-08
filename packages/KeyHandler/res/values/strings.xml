@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: 2026 The LineageOS Project
+    SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <string name="plus_key_category_title">Plus Key</string>
+    <string name="plus_key_action_title">Press action</string>
+    <string name="plus_key_long_press_action_title">Long press action</string>
+    <string name="plus_key_selection_dialog_title">Plus Key action</string>
+    <string name="plus_key_app_title">App to open</string>
+    <string name="plus_key_app_dialog_title">Select app</string>
+
+    <string name="plus_key_action_none">Default</string>
+    <string name="plus_key_action_assistant">Open assistant</string>
+    <string name="plus_key_action_camera">Open camera</string>
+    <string name="plus_key_action_screenshot">Take screenshot</string>
+    <string name="plus_key_action_search">Search</string>
+    <string name="plus_key_action_play_pause">Play/pause media</string>
+    <string name="plus_key_action_torch">Toggle flashlight</string>
+    <string name="plus_key_action_ringer_cycle">Cycle ringer mode</string>
+    <string name="plus_key_action_dnd">Toggle Do Not Disturb</string>
+    <string name="plus_key_action_mute">Toggle media mute</string>
+    <string name="plus_key_action_open_app">Open app</string>
+</resources>

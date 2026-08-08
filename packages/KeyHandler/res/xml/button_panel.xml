@@ -50,4 +50,34 @@
             android:defaultValue="true" />
 
     </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="@string/plus_key_category_title">
+
+        <ListPreference
+            android:key="config_plus_key_action"
+            android:dialogTitle="@string/plus_key_selection_dialog_title"
+            android:entries="@array/plus_key_action_entries"
+            android:entryValues="@array/plus_key_action_entry_values"
+            android:defaultValue="-1"
+            android:title="@string/plus_key_action_title"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference
+            android:key="config_plus_key_long_press_action"
+            android:dialogTitle="@string/plus_key_selection_dialog_title"
+            android:entries="@array/plus_key_action_entries"
+            android:entryValues="@array/plus_key_action_entry_values"
+            android:defaultValue="-1"
+            android:title="@string/plus_key_long_press_action_title"
+            app:useSimpleSummaryProvider="true" />
+
+        <!-- Entries are the installed launchable apps, filled in at runtime. -->
+        <ListPreference
+            android:key="config_plus_key_app"
+            android:dialogTitle="@string/plus_key_app_dialog_title"
+            android:title="@string/plus_key_app_title"
+            app:useSimpleSummaryProvider="true" />
+
+    </PreferenceCategory>
 </PreferenceScreen>
