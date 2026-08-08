@@ -7,6 +7,7 @@
 
 #include <android-base/logging.h>
 #include <fcntl.h>
+#include <livedisplay/oplus/PanelFd.h>
 #include <livedisplay/oplus/AntiFlicker.h>
 #include <oplus/oplus_display_panel.h>
 
@@ -15,7 +16,7 @@ namespace vendor {
 namespace lineage {
 namespace livedisplay {
 
-AntiFlicker::AntiFlicker() : mOplusDisplayFd(open("/dev/oplus_display", O_RDWR)) {}
+AntiFlicker::AntiFlicker() : mOplusDisplayFd(GetPanelFd()) {}
 
 ndk::ScopedAStatus AntiFlicker::getEnabled(bool* _aidl_return) {
     unsigned int value;

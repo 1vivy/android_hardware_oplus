@@ -4,6 +4,11 @@
 //
 
 filegroup {
+    name: "vendor.lineage.livedisplay-oplus-panelfd",
+    srcs: ["PanelFd.cpp"],
+}
+
+filegroup {
     name: "vendor.lineage.livedisplay-oplus-ab",
     srcs: ["AdaptiveBacklight.cpp"],
 }
@@ -52,6 +57,7 @@ cc_binary {
     srcs: [
         ":vendor.lineage.livedisplay-sdm-pa",
         ":vendor.lineage.livedisplay-sdm-utils",
+        ":vendor.lineage.livedisplay-oplus-panelfd",
         ":vendor.lineage.livedisplay-oplus-ab",
         ":vendor.lineage.livedisplay-oplus-af",
         ":vendor.lineage.livedisplay-oplus-dm",

@@ -7,6 +7,7 @@
 
 #include <android-base/logging.h>
 #include <fcntl.h>
+#include <livedisplay/oplus/PanelFd.h>
 #include <livedisplay/oplus/AdaptiveBacklight.h>
 #include <oplus/oplus_display_panel.h>
 
@@ -15,7 +16,7 @@ namespace vendor {
 namespace lineage {
 namespace livedisplay {
 
-AdaptiveBacklight::AdaptiveBacklight() : mOplusDisplayFd(open("/dev/oplus_display", O_RDWR)) {}
+AdaptiveBacklight::AdaptiveBacklight() : mOplusDisplayFd(GetPanelFd()) {}
 
 ndk::ScopedAStatus AdaptiveBacklight::getEnabled(bool* _aidl_return) {
     unsigned int value;

@@ -8,6 +8,7 @@
 #include <android-base/logging.h>
 #include <android-base/properties.h>
 #include <fcntl.h>
+#include <livedisplay/oplus/PanelFd.h>
 #include <livedisplay/oplus/DisplayModes.h>
 #include <oplus/oplus_display_panel.h>
 #include <fstream>
@@ -30,7 +31,7 @@ const std::map<int32_t, DisplayModes::ModeInfo> DisplayModes::kModeMap = {
 
 DisplayModes::DisplayModes(std::shared_ptr<sdm::SDMController> controller)
     : mController(controller),
-      mOplusDisplayFd(open("/dev/oplus_display", O_RDWR)),
+      mOplusDisplayFd(GetPanelFd()),
       mCurrentModeId(0),
       mDefaultModeId(0) {
     std::ifstream defaultFile(kDefaultPath);
