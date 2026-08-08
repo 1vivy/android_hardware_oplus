@@ -9,6 +9,7 @@
 #include "FeatureRegistry.h"
 
 #include <aidl/vendor/oplus/hardware/displaypanelfeature/IDisplayPanelFeature.h>
+#include <android-base/file.h>
 #include <android-base/logging.h>
 #include <android-base/properties.h>
 #include <android/binder_manager.h>
@@ -100,17 +101,31 @@ int main() {
     std::map<std::string, std::string> published;
     while (true) {
         for (const auto& entry : *registry) {
-            if (entry.source != ValueSource::kProperty || entry.direction == Direction::kGet) {
+            if (entry.status == RowStatus::kReserved || entry.direction == Direction::kGet) {
                 continue;
             }
-            const auto value = android::base::GetProperty(entry.property, "");
-            if (value.empty() || published[entry.property] == value) continue;
-            const auto payload = ParsePropertyPayload(entry, value);
-            if (!payload) {
-                LOG(ERROR) << "invalid payload in " << entry.property;
-                continue;
+            if (entry.source == ValueSource::kProperty) {
+                const auto value = android::base::GetProperty(entry.property, "");
+                if (value.empty() || published[entry.property] == value) continue;
+                const auto payload = ParsePropertyPayload(entry, value);
+                if (!payload) {
+                    LOG(ERROR) << "invalid payload in " << entry.property;
+                    continue;
+                }
+                if (SetFeature(service, entry.id, *payload)) published[entry.property] = value;
+            } else if (entry.source == ValueSource::kSysfsNode) {
+                std::string value;
+                if (!android::base::ReadFileToString(entry.path, &value) || value.empty() ||
+                    published[entry.path] == value) {
+                    continue;
+                }
+                const auto payload = ParseSysfsPayload(entry, value);
+                if (!payload) {
+                    LOG(ERROR) << "invalid payload in " << entry.path;
+                    continue;
+                }
+                if (SetFeature(service, entry.id, *payload)) published[entry.path] = value;
             }
-            if (SetFeature(service, entry.id, *payload)) published[entry.property] = value;
         }
         std::this_thread::sleep_for(1s);
     }
