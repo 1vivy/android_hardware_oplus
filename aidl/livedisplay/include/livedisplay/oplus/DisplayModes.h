@@ -37,7 +37,6 @@ class DisplayModes : public BnDisplayModes {
     };
     static const std::map<int32_t, ModeInfo> kModeMap;
     std::shared_ptr<sdm::SDMController> mController;
-    int32_t mOplusDisplayFd;
     int32_t mCurrentModeId;
     int32_t mDefaultModeId;
     DisplayModeSetCallback mOnDisplayModeSet;

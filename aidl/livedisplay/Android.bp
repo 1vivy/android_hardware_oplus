@@ -4,6 +4,11 @@
 //
 
 filegroup {
+    name: "vendor.lineage.livedisplay-oplus-panelfeature",
+    srcs: ["PanelFeature.cpp"],
+}
+
+filegroup {
     name: "vendor.lineage.livedisplay-oplus-ab",
     srcs: ["AdaptiveBacklight.cpp"],
 }
@@ -57,6 +62,7 @@ cc_binary {
     srcs: [
         ":vendor.lineage.livedisplay-sdm-pa",
         ":vendor.lineage.livedisplay-sdm-utils",
+        ":vendor.lineage.livedisplay-oplus-panelfeature",
         ":vendor.lineage.livedisplay-oplus-ab",
         ":vendor.lineage.livedisplay-oplus-af",
         ":vendor.lineage.livedisplay-oplus-dc",
@@ -70,6 +76,7 @@ cc_binary {
         "libbinder",
         "libutils",
         "vendor.lineage.livedisplay-V1-ndk",
+        "vendor.oplus.hardware.displaypanelfeature-V1-ndk",
     ],
     header_libs: [
         "kernel_headers.oplus",

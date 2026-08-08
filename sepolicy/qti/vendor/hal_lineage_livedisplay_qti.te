@@ -2,3 +2,5 @@ allow hal_lineage_livedisplay_qti graphics_device:chr_file rw_file_perms;
 
 # DC dimming reads its alpha from a property instead of a binder interface.
 get_prop(hal_lineage_livedisplay_qti, system_oplus_display_prop)
+
+hal_client_domain(hal_lineage_livedisplay_qti, vendor_hal_oplus_displaypanelfeature)
