@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Representative FeatureRegistry rows for host-side schema tests. This is not the
+  shipped device-tree registry (which lives in android_device_oneplus_infiniti,
+  outside this repo's governance) - it exists to exercise the kSysfsNode source
+  kind and the producer/status metadata fields, and to carry the corrected id=4
+  row documented in wave7/DESIGN-registry-collapse.md.
+-->
+<displayPanelFeatures>
+    <!--
+      Panel colour "seed". Measured this session: id 4 is the ONLY write path
+      that reaches the panel driver (panel_ioctl:360 PANEL_IOCTL_SET_SEED fires
+      on write; IDisplayModes' prior direct /dev/oplus_display ioctl never
+      reached it). Its current producer is aidl/livedisplay/DisplayModes.cpp
+      (staging/features-v2/colour-profiles, commit 65f64dd), which calls
+      setDisplayPanelFeatureValue(4, seedMode) directly on every user
+      colour-mode selection - not through this row's own
+      persist.vendor.displaypanel.seed property, which stays unwritten. The
+      panel accepts seeds 0..4 only; seeds outside that range are rejected by
+      the driver. This row must stay status="active": it is not inert and
+      must not be treated as reserved.
+    -->
+    <feature id="4" direction="both" payload="scalar" source="property"
+             property="persist.vendor.displaypanel.seed"
+             status="active"
+             producer="aidl/livedisplay/DisplayModes.cpp (staging/features-v2/colour-profiles, commit 65f64dd) - direct setDisplayPanelFeatureValue(4, seedMode) call on colour-mode selection; see wave7/DESIGN-registry-collapse.md correction and wave7/TOPIC-colour-modes.md sec.2a" />
+    <feature id="217" direction="both" payload="scalar" source="property"
+             property="persist.vendor.displaypanel.longrui_aod"
+             producer="frameworks/base packages/SystemUI/.../doze/DozeMachine.java transitionTo(): writes bit0+bit2 (5) entering full-screen AOD, 0 leaving - see wave7/TOPIC-adfr-inputs.md sec.'Concrete delta'" />
+    <feature id="232" direction="set" payload="adfr-control" source="adfr-xml" />
+    <feature id="234" direction="set" payload="adfr-config" source="adfr-xml" />
+    <!--
+      Brightness/nits telemetry. Worked example for kSysfsNode: no named
+      consumer exists yet (F5-PRE row 29), so it stays status="reserved" -
+      parsed and validated, but never dispatched by the poll loop.
+    -->
+    <feature id="29" direction="get" payload="scalar" source="sysfs-node"
+             path="/sys/kernel/oplus_display/oplus_brightness"
+             status="reserved"
+             producer="kernel-native telemetry, no framework consumer named yet - F5-PRE row 29; do not activate without a named consumer" />
+</displayPanelFeatures>
