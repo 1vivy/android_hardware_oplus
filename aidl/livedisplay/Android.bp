@@ -64,6 +64,7 @@ cc_binary {
         "libbinder",
         "libutils",
         "vendor.lineage.livedisplay-V1-ndk",
+        "vendor.oplus.hardware.displaypanelfeature-V1-ndk",
     ],
     header_libs: [
         "kernel_headers.oplus",
