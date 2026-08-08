@@ -7,9 +7,8 @@
 
 #include <android-base/logging.h>
 #include <android-base/properties.h>
-#include <fcntl.h>
 #include <livedisplay/oplus/DisplayModes.h>
-#include <oplus/oplus_display_panel.h>
+#include <livedisplay/oplus/PanelFeature.h>
 #include <fstream>
 
 namespace aidl {
@@ -30,7 +29,6 @@ const std::map<int32_t, DisplayModes::ModeInfo> DisplayModes::kModeMap = {
 
 DisplayModes::DisplayModes(std::shared_ptr<sdm::SDMController> controller)
     : mController(controller),
-      mOplusDisplayFd(open("/dev/oplus_display", O_RDWR)),
       mCurrentModeId(0),
       mDefaultModeId(0) {
     std::ifstream defaultFile(kDefaultPath);
@@ -67,8 +65,8 @@ ndk::ScopedAStatus DisplayModes::setDisplayMode(int32_t modeID, bool makeDefault
     if (iter == kModeMap.end()) {
         return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
     }
-    if (mOplusDisplayFd >= 0) {
-        ioctl(mOplusDisplayFd, PANEL_IOCTL_SET_SEED, &iter->second.seedMode);
+    if (!panel::Set(panel::kSeed, static_cast<int32_t>(iter->second.seedMode))) {
+        return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
     mController->setActiveDisplayMode(iter->second.displayModeId);
     mCurrentModeId = iter->first;
