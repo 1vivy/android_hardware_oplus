@@ -68,13 +68,8 @@ int main() {
     std::shared_ptr<AdaptiveBacklight> ab =
             ENABLE_AB ? ndk::SharedRefBase::make<AdaptiveBacklight>() : nullptr;
     std::shared_ptr<AntiFlicker> af = ENABLE_AF ? ndk::SharedRefBase::make<AntiFlicker>() : nullptr;
-    /*
-     * DC dimming is not a LiveDisplay interface - LiveDisplay has no
-     * DC-dimming contract - so it is driven by a system property instead of a
-     * binder object. It rides this process because /dev/oplus_display is
-     * already open here under a single sepolicy domain. See DcDimming.cpp for
-     * the ioctl subset it owns and the AntiFlicker ownership boundary.
-     */
+    /* DC dimming is property-driven but uses the same typed DPF client as the
+     * LiveDisplay interfaces; this process never owns the raw panel device. */
     std::shared_ptr<DcDimming> dc = ENABLE_DC ? std::make_shared<DcDimming>() : nullptr;
     bool pa_ready = ENABLE_PA && PictureAdjustmentReady(controller);
 

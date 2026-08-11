@@ -16,8 +16,9 @@ namespace livedisplay {
 
 ndk::ScopedAStatus AntiFlicker::getEnabled(bool* _aidl_return) {
     int32_t value = 0;
-    if (!panel::Get(panel::kPwmPulse, &value) && !panel::Get(panel::kPwmTurbo, &value) &&
-        !panel::Get(panel::kDimlayerBlEn, &value)) {
+    if (!panel::Get(panel::FeatureId::kPwmPulse, &value) &&
+        !panel::Get(panel::FeatureId::kPwmTurbo, &value) &&
+        !panel::Get(panel::FeatureId::kDimlayerBlEnable, &value)) {
         LOG(ERROR) << "Failed to read current AntiFlicker state";
         return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
     }
@@ -30,8 +31,9 @@ ndk::ScopedAStatus AntiFlicker::setEnabled(bool enabled) {
     if (auto status = getEnabled(&isEnabled); !status.isOk()) {
         return status;
     }
-    if (isEnabled != enabled && !panel::Set(panel::kPwmPulse, enabled) &&
-        !panel::Set(panel::kPwmTurbo, enabled) && !panel::Set(panel::kDimlayerBlEn, enabled)) {
+    if (isEnabled != enabled && !panel::Set(panel::FeatureId::kPwmPulse, enabled) &&
+        !panel::Set(panel::FeatureId::kPwmTurbo, enabled) &&
+        !panel::Set(panel::FeatureId::kDimlayerBlEnable, enabled)) {
         LOG(ERROR) << "Failed to set AntiFlicker state";
         return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
     }

@@ -7,76 +7,64 @@
 
 #include <livedisplay/oplus/PanelFeature.h>
 
-#include <aidl/vendor/oplus/hardware/displaypanelfeature/IDisplayPanelFeature.h>
+#include <AidlPanelFeatureTransport.h>
+#include <FeatureRegistry.h>
 #include <android-base/logging.h>
-#include <android/binder_manager.h>
 
 #include <memory>
-#include <vector>
+#include <string>
 
-namespace aidl {
-namespace vendor {
-namespace lineage {
-namespace livedisplay {
-namespace panel {
-
+namespace aidl::vendor::lineage::livedisplay::panel {
 namespace {
 
-using ::aidl::vendor::oplus::hardware::displaypanelfeature::IDisplayPanelFeature;
+constexpr const char* kRegistry = "/vendor/etc/display/displaypanelfeature_publisher.xml";
+constexpr const char* kOemService =
+        "/odm/bin/hw/vendor.oplus.hardware.displaypanelfeature-service";
 
-constexpr const char* kService =
-        "vendor.oplus.hardware.displaypanelfeature.IDisplayPanelFeature/default";
-
-// Must stay non-blocking and must not cache a failure: these run from HAL
-// constructors, before this process registers its own services.
-std::shared_ptr<IDisplayPanelFeature> Service() {
-    static std::shared_ptr<IDisplayPanelFeature> service;
-    if (service == nullptr) {
-        service = IDisplayPanelFeature::fromBinder(
-                ndk::SpAIBinder(AServiceManager_checkService(kService)));
-    }
-    return service;
+std::shared_ptr<::oplus::displaypanelfeature::DisplayPanelFeatureClient> Client() {
+    static const auto client = [] {
+        std::string error;
+        auto registry = ::oplus::displaypanelfeature::FeatureRegistry::Load(kRegistry, &error);
+        if (!registry) {
+            LOG(ERROR) << "DPF registry rejected: " << error;
+            return std::shared_ptr<::oplus::displaypanelfeature::DisplayPanelFeatureClient>();
+        }
+        const auto serviceHash = ::oplus::displaypanelfeature::Sha256File(kOemService);
+        if (!serviceHash || !registry->ValidateServiceHash(*serviceHash, &error)) {
+            LOG(ERROR) << "DPF provenance rejected: " << error;
+            return std::shared_ptr<::oplus::displaypanelfeature::DisplayPanelFeatureClient>();
+        }
+        return std::make_shared<::oplus::displaypanelfeature::DisplayPanelFeatureClient>(
+                std::move(registry),
+                ::oplus::displaypanelfeature::CreateAidlPanelFeatureTransport());
+    }();
+    return client;
 }
 
 }  // namespace
 
-bool Get(int32_t featureId, int32_t* value) {
-    const auto service = Service();
-    if (service == nullptr) {
-        LOG(ERROR) << "displaypanelfeature unavailable, cannot read feature " << featureId;
-        return false;
-    }
-
-    std::vector<int32_t> values{0};
-    int32_t result = -1;
-    const auto status = service->getDisplayPanelFeatureValue(featureId, &values, &result);
-    if (!status.isOk() || result != 0 || values.empty()) {
-        return false;
-    }
-
-    *value = values.front();
-    return true;
-}
-
-bool Set(int32_t featureId, int32_t value) {
-    const auto service = Service();
-    if (service == nullptr) {
-        LOG(ERROR) << "displaypanelfeature unavailable, feature " << featureId << " not applied";
-        return false;
-    }
-
-    int32_t result = -1;
-    const auto status = service->setDisplayPanelFeatureValue(featureId, {value}, &result);
-    if (!status.isOk() || result != 0) {
-        LOG(ERROR) << "feature " << featureId << " value " << value
-                   << " rejected: binder=" << status.getDescription() << " result=" << result;
+bool Get(FeatureId feature, int32_t* value) {
+    const auto client = Client();
+    if (!client) return false;
+    std::string error;
+    if (!client->GetScalar(::oplus::displaypanelfeature::DisplayRole::kPrimary, feature, value,
+                           &error)) {
+        LOG(ERROR) << "DPF get failed: " << error;
         return false;
     }
     return true;
 }
 
-}  // namespace panel
-}  // namespace livedisplay
-}  // namespace lineage
-}  // namespace vendor
-}  // namespace aidl
+bool Set(FeatureId feature, int32_t value) {
+    const auto client = Client();
+    if (!client) return false;
+    std::string error;
+    if (!client->SetScalar(::oplus::displaypanelfeature::DisplayRole::kPrimary, feature, value,
+                           &error)) {
+        LOG(ERROR) << "DPF set failed: " << error;
+        return false;
+    }
+    return true;
+}
+
+}  // namespace aidl::vendor::lineage::livedisplay::panel

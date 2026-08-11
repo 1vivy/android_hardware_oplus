@@ -15,20 +15,14 @@ namespace livedisplay {
  *
  * This is not a binder interface: LiveDisplay has no DC-dimming contract to
  * implement, so the control surface is a system property (see kProperty) that
- * this controller applies to the panel. It lives in the LiveDisplay service
- * because that process is already the owner of /dev/oplus_display, which keeps
- * the panel character device behind a single domain and needs no new sepolicy
- * domain, exec type or init service.
- *
- * The ioctl subset, the AntiFlicker ownership boundary, and the alpha semantics
- * are documented at the top of DcDimming.cpp. Read that before touching this.
+ * this controller applies through the typed DPF client. The proprietary ODM
+ * service remains the sole owner of /dev/oplus_display and its sysfs fallback.
+ * The AntiFlicker ownership boundary and alpha semantics are documented at the
+ * top of DcDimming.cpp.
  */
 class DcDimming {
   public:
-    DcDimming();
-    ~DcDimming();
-
-    /* True when the panel answers the DC-dimming read ioctl. */
+    /* True when the typed DPF contract answers the DC-dimming read. */
     bool isSupported();
 
     /*
@@ -47,7 +41,6 @@ class DcDimming {
     bool setAlphaOverride(unsigned int alpha);
     void apply();
 
-    int mOplusDisplayFd;
 };
 
 }  // namespace livedisplay

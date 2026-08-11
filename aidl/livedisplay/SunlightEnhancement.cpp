@@ -16,7 +16,7 @@ namespace livedisplay {
 
 ndk::ScopedAStatus SunlightEnhancement::getEnabled(bool* _aidl_return) {
     int32_t value = 0;
-    if (!panel::Get(panel::kHbm, &value)) {
+    if (!panel::Get(panel::FeatureId::kHbm, &value)) {
         LOG(ERROR) << "Failed to read current SunlightEnhancement state";
         return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
     }
@@ -29,7 +29,7 @@ ndk::ScopedAStatus SunlightEnhancement::setEnabled(bool enabled) {
     if (auto status = getEnabled(&isEnabled); !status.isOk()) {
         return status;
     }
-    if (isEnabled != enabled && !panel::Set(panel::kHbm, enabled)) {
+    if (isEnabled != enabled && !panel::Set(panel::FeatureId::kHbm, enabled)) {
         LOG(ERROR) << "Failed to set SunlightEnhancement state";
         return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
     }

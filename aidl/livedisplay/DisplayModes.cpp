@@ -65,7 +65,7 @@ ndk::ScopedAStatus DisplayModes::setDisplayMode(int32_t modeID, bool makeDefault
     if (iter == kModeMap.end()) {
         return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
     }
-    if (!panel::Set(panel::kSeed, static_cast<int32_t>(iter->second.seedMode))) {
+    if (!panel::Set(panel::FeatureId::kSeed, static_cast<int32_t>(iter->second.seedMode))) {
         return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
     mController->setActiveDisplayMode(iter->second.displayModeId);
