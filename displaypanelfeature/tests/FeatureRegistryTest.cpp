@@ -23,6 +23,39 @@ const FeatureEntry* FindId(const std::vector<FeatureEntry>& entries, int32_t id)
     return it == entries.end() ? nullptr : &*it;
 }
 
+TEST(FeatureRegistryTest, DigestsThePinnedNinetyFiveIdContract) {
+    std::string error;
+    const auto registry = FeatureRegistry::Load(TestData("registry-infiniti-95.xml"), &error);
+    ASSERT_NE(registry, nullptr) << error;
+    EXPECT_EQ(registry->entries().size(), 95U);
+    EXPECT_EQ(registry->service_hash(),
+              "fca0f3ab46535ee5db37f7e8632a7d991cb88676a3815f126af50639c0df8cbf");
+    EXPECT_EQ(registry->DisplayId(DisplayRole::kPrimary), 0);
+    EXPECT_EQ(registry->DisplayId(DisplayRole::kSecondary), 1);
+    const auto setCount = std::count_if(registry->entries().begin(), registry->entries().end(),
+                                        [](const auto& row) {
+                                            return row.direction != Direction::kGet;
+                                        });
+    const auto getCount = std::count_if(registry->entries().begin(), registry->entries().end(),
+                                        [](const auto& row) {
+                                            return row.direction != Direction::kSet;
+                                        });
+    EXPECT_EQ(setCount, 77);
+    EXPECT_EQ(getCount, 61);
+}
+
+TEST(FeatureRegistryTest, DigestsTheLiveShippedServiceContract) {
+    std::string error;
+    const auto registry = FeatureRegistry::Load(
+            android::base::GetExecutableDirectory() +
+                    "/configs/displaypanelfeature_infiniti.xml",
+            &error);
+    ASSERT_NE(registry, nullptr) << error;
+    EXPECT_EQ(registry->entries().size(), 101U);
+    EXPECT_EQ(registry->service_hash(),
+              "b244b0bb4d7ffbf5372b47efa613f53fc55f094f7a814015283553a745d6e560");
+}
+
 TEST(FeatureRegistryTest, ParsesLegacyThreeSourceRowsWithoutTheNewAttributes) {
     // Given: a row written before kSysfsNode/producer/status existed.
     // When

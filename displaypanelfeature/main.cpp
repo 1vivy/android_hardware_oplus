@@ -6,69 +6,69 @@
 #define LOG_TAG "displaypanelfeature-publisher"
 
 #include "AdfrConfig.h"
+#include "AidlPanelFeatureTransport.h"
+#include "DisplayPanelFeatureClient.h"
 #include "FeatureRegistry.h"
+#include "Publisher.h"
 
-#include <aidl/vendor/oplus/hardware/displaypanelfeature/IDisplayPanelFeature.h>
 #include <android-base/file.h>
 #include <android-base/logging.h>
 #include <android-base/properties.h>
-#include <android/binder_manager.h>
 #include <android/binder_process.h>
+#include <sys/system_properties.h>
 
-#include <chrono>
 #include <cstdlib>
-#include <map>
 #include <memory>
-#include <thread>
-
-using aidl::vendor::oplus::hardware::displaypanelfeature::IDisplayPanelFeature;
-using namespace std::chrono_literals;
+#include <string>
 
 namespace oplus::displaypanelfeature {
 namespace {
 
-constexpr auto kService = "vendor.oplus.hardware.displaypanelfeature.IDisplayPanelFeature/default";
 constexpr auto kRegistryPath = "/vendor/etc/display/displaypanelfeature_publisher.xml";
 constexpr auto kAdfrConfigPath = "/vendor/etc/display/multimedia_display_adfr2minfps_config.xml";
+constexpr auto kOemServicePath =
+        "/odm/bin/hw/vendor.oplus.hardware.displaypanelfeature-service";
 
-bool SetFeature(const std::shared_ptr<IDisplayPanelFeature>& service, int32_t id,
-                const std::vector<int32_t>& payload) {
-    int32_t result = -1;
-    const auto status = service->setDisplayPanelFeatureValue(id, payload, &result);
-    if (!status.isOk() || result != 0) {
-        LOG(ERROR) << "set feature " << id << " failed: binder=" << status.getDescription()
-                   << " result=" << result;
-        return false;
-    }
-    return true;
-}
-
-void ProbeFeature(const std::shared_ptr<IDisplayPanelFeature>& service, int32_t id) {
-    std::vector<int32_t> values{0};
-    int32_t result = -1;
-    const auto status = service->getDisplayPanelFeatureValue(id, &values, &result);
-    if (!status.isOk() || result != 0) {
-        LOG(WARNING) << "get feature " << id << " unavailable";
-    }
-}
-
-bool PublishAdfr(const std::shared_ptr<IDisplayPanelFeature>& service) {
-    std::vector<int32_t> support{0};
-    int32_t result = -1;
-    const auto status = service->getDisplayPanelFeatureValue(233, &support, &result);
-    if (!status.isOk() || result != 0 || support.empty() || support[0] == 0) {
-        LOG(ERROR) << "ADFR support probe failed";
-        return false;
-    }
-
+bool PublishAdfr(const DisplayPanelFeatureClient& client) {
     std::string error;
+    int32_t support = 0;
+    if (!client.GetScalar(DisplayRole::kPrimary, FeatureId::kAdfrSupport, &support, &error) ||
+        support == 0) {
+        LOG(ERROR) << "ADFR support probe failed: " << error;
+        return false;
+    }
     const auto payload = LoadAdfrConfig(kAdfrConfigPath, &error);
     if (!payload) {
         LOG(ERROR) << "ADFR config rejected: " << error;
         return false;
     }
-    if (!SetFeature(service, 234, {payload->begin(), payload->end()})) return false;
-    return SetFeature(service, 232, {0, (*payload)[2]});
+    if (!client.Set(DisplayRole::kPrimary, FeatureId::kAdfrConfig,
+                    {payload->begin(), payload->end()}, &error) ||
+        !client.Set(DisplayRole::kPrimary, FeatureId::kAdfrControl, {0, (*payload)[2]}, &error)) {
+        LOG(ERROR) << "ADFR publish failed: " << error;
+        return false;
+    }
+    return true;
+}
+
+void PublishCurrentEvents(const FeatureRegistry& registry, Publisher* publisher) {
+    for (const auto& entry : registry.entries()) {
+        std::string value;
+        bool dispatched = false;
+        std::string error;
+        if (entry.source == ValueSource::kProperty) {
+            value = android::base::GetProperty(entry.property, "");
+            dispatched = !value.empty() && publisher->OnProperty(entry.property, value, &error);
+        } else if (entry.source == ValueSource::kSysfsNode &&
+                   android::base::ReadFileToString(entry.path, &value) && !value.empty()) {
+            dispatched = publisher->OnSysfsEvent(entry.path, value, &error);
+        } else {
+            continue;
+        }
+        if (!dispatched && !error.empty()) {
+            LOG(ERROR) << "producer event for feature " << entry.id << " rejected: " << error;
+        }
+    }
 }
 
 }  // namespace
@@ -79,54 +79,27 @@ int main() {
 
     ABinderProcess_setThreadPoolMaxThreadCount(1);
     ABinderProcess_startThreadPool();
-    const auto service = IDisplayPanelFeature::fromBinder(
-            ndk::SpAIBinder(AServiceManager_waitForService(kService)));
-    if (!service) {
-        LOG(ERROR) << "displaypanelfeature service unavailable";
-        return EXIT_FAILURE;
-    }
 
     std::string error;
-    const auto registry = LoadFeatureRegistry(kRegistryPath, &error);
+    const auto registry = FeatureRegistry::Load(kRegistryPath, &error);
     if (!registry) {
         LOG(ERROR) << "feature registry rejected: " << error;
         return EXIT_FAILURE;
     }
-    if (!PublishAdfr(service)) return EXIT_FAILURE;
-
-    for (const auto& entry : *registry) {
-        if (entry.direction != Direction::kSet) ProbeFeature(service, entry.id);
+    const auto serviceHash = Sha256File(kOemServicePath);
+    if (!serviceHash || !registry->ValidateServiceHash(*serviceHash, &error)) {
+        LOG(ERROR) << "OEM service provenance rejected: " << error;
+        return EXIT_FAILURE;
     }
+    const DisplayPanelFeatureClient client(registry, CreateAidlPanelFeatureTransport());
+    if (!PublishAdfr(client)) return EXIT_FAILURE;
 
-    std::map<std::string, std::string> published;
-    while (true) {
-        for (const auto& entry : *registry) {
-            if (entry.status == RowStatus::kReserved || entry.direction == Direction::kGet) {
-                continue;
-            }
-            if (entry.source == ValueSource::kProperty) {
-                const auto value = android::base::GetProperty(entry.property, "");
-                if (value.empty() || published[entry.property] == value) continue;
-                const auto payload = ParsePropertyPayload(entry, value);
-                if (!payload) {
-                    LOG(ERROR) << "invalid payload in " << entry.property;
-                    continue;
-                }
-                if (SetFeature(service, entry.id, *payload)) published[entry.property] = value;
-            } else if (entry.source == ValueSource::kSysfsNode) {
-                std::string value;
-                if (!android::base::ReadFileToString(entry.path, &value) || value.empty() ||
-                    published[entry.path] == value) {
-                    continue;
-                }
-                const auto payload = ParseSysfsPayload(entry, value);
-                if (!payload) {
-                    LOG(ERROR) << "invalid payload in " << entry.path;
-                    continue;
-                }
-                if (SetFeature(service, entry.id, *payload)) published[entry.path] = value;
-            }
-        }
-        std::this_thread::sleep_for(1s);
+    Publisher publisher(registry, client);
+    PublishCurrentEvents(*registry, &publisher);
+    uint32_t serial = 0;
+    while (__system_property_wait(nullptr, serial, &serial, nullptr)) {
+        PublishCurrentEvents(*registry, &publisher);
     }
+    LOG(ERROR) << "property event subscription failed";
+    return EXIT_FAILURE;
 }

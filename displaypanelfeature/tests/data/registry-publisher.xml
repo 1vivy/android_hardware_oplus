@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<displayPanelFeatures schemaVersion="1" serviceSha256="fca0f3ab46535ee5db37f7e8632a7d991cb88676a3815f126af50639c0df8cbf" setCount="2" getCount="1">
+  <display role="primary" id="0" aliases="test" />
+  <feature id="1" name="PanelPower" direction="set" payload="scalar" source="property" property="test.reserved" handler="compiled-switch:1" producer="test" status="reserved" displays="primary" min="0" max="1" />
+  <feature id="184" name="Cabc" direction="both" payload="scalar" source="property" property="test.cabc" handler="compiled-switch:184" producer="test" status="active" displays="primary" min="0" max="1" />
+</displayPanelFeatures>

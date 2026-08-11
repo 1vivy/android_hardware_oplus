@@ -5,7 +5,6 @@ cc_library_static {
     srcs: [
         "AdfrConfig.cpp",
         "AdfrFloorPolicy.cpp",
-        "FeatureRegistry.cpp",
     ],
     export_include_dirs: ["."],
     shared_libs: [
@@ -15,15 +14,51 @@ cc_library_static {
     cflags: ["-Wall", "-Werror"],
 }
 
+cc_library_static {
+    name: "liboplus_displaypanelfeature_client",
+    vendor_available: true,
+    host_supported: true,
+    srcs: [
+        "DisplayPanelFeatureClient.cpp",
+        "FeatureRegistry.cpp",
+        "Publisher.cpp",
+    ],
+    export_include_dirs: ["."],
+    shared_libs: [
+        "libbase",
+        "libcrypto",
+        "libtinyxml2",
+    ],
+    cflags: ["-Wall", "-Werror"],
+}
+
+cc_library_static {
+    name: "liboplus_displaypanelfeature_aidl_transport",
+    vendor_available: true,
+    srcs: ["AidlPanelFeatureTransport.cpp"],
+    export_include_dirs: ["."],
+    static_libs: ["liboplus_displaypanelfeature_client"],
+    shared_libs: [
+        "libbinder_ndk",
+        "vendor.oplus.hardware.displaypanelfeature-V1-ndk",
+    ],
+    cflags: ["-Wall", "-Werror"],
+}
+
 cc_binary {
     name: "displaypanelfeature-publisher",
     vendor: true,
     init_rc: ["displaypanelfeature-publisher.rc"],
     srcs: ["main.cpp"],
-    static_libs: ["liboplus_displaypanelfeature_config"],
+    static_libs: [
+        "liboplus_displaypanelfeature_aidl_transport",
+        "liboplus_displaypanelfeature_client",
+        "liboplus_displaypanelfeature_config",
+    ],
     shared_libs: [
         "libbase",
         "libbinder_ndk",
+        "libcrypto",
         "libtinyxml2",
         "vendor.oplus.hardware.displaypanelfeature-V1-ndk",
     ],
@@ -39,24 +74,52 @@ cc_test_host {
         "libtinyxml2",
     ],
     data: ["tests/data/*"],
-    test_options: {
-        unit_test: true,
-    },
+    test_options: { unit_test: true },
     cflags: ["-Wall", "-Werror"],
 }
 
 cc_test_host {
     name: "displaypanelfeature_registry_test",
     srcs: ["tests/FeatureRegistryTest.cpp"],
-    static_libs: ["liboplus_displaypanelfeature_config"],
+    static_libs: ["liboplus_displaypanelfeature_client"],
     shared_libs: [
         "libbase",
+        "libcrypto",
         "libtinyxml2",
     ],
-    data: ["tests/data/*"],
-    test_options: {
-        unit_test: true,
-    },
+    data: [
+        "configs/displaypanelfeature_infiniti.xml",
+        "tests/data/*",
+    ],
+    test_options: { unit_test: true },
+    cflags: ["-Wall", "-Werror"],
+}
+
+cc_test_host {
+    name: "displaypanelfeature_client_test",
+    srcs: ["tests/DisplayPanelFeatureClientTest.cpp"],
+    static_libs: ["liboplus_displaypanelfeature_client"],
+    shared_libs: [
+        "libbase",
+        "libcrypto",
+        "libtinyxml2",
+    ],
+    data: ["tests/data/registry-infiniti-95.xml"],
+    test_options: { unit_test: true },
+    cflags: ["-Wall", "-Werror"],
+}
+
+cc_test_host {
+    name: "displaypanelfeature_publisher_test",
+    srcs: ["tests/PublisherTest.cpp"],
+    static_libs: ["liboplus_displaypanelfeature_client"],
+    shared_libs: [
+        "libbase",
+        "libcrypto",
+        "libtinyxml2",
+    ],
+    data: ["tests/data/registry-publisher.xml"],
+    test_options: { unit_test: true },
     cflags: ["-Wall", "-Werror"],
 }
 
@@ -68,9 +131,7 @@ cc_test_host {
         "libbase",
         "libtinyxml2",
     ],
-    test_options: {
-        unit_test: true,
-    },
+    test_options: { unit_test: true },
     cflags: ["-Wall", "-Werror"],
 }
 
