@@ -41,20 +41,25 @@ class ChargerCallbackImpl : public ChargerCallback {
 
 namespace {
 
-// BatteryMonitor only autodetects the battery-health attributes under
-// /sys/class/power_supply/<supply>/. The oplus_chg driver publishes them under
-// its own class instead, so the paths are seeded here from the device tree.
-// BatteryMonitor::init() then leaves them alone -- it only fills paths that are
-// still empty. A seeded node that is absent at runtime reads back as 0, which is
-// what the stock "unsupported" path already reports, so a wrong path degrades
-// the reading rather than failing the HAL.
-void SeedOplusChgHealthPaths(struct healthd_config* config) {
+// Seed device-selected lifetime telemetry before BatteryMonitor::init(). This
+// both reaches attributes outside /sys/class/power_supply and prevents
+// autodetection from selecting a placeholder supplied by another battery
+// device. An absent or zero-valued optional node retains healthd's unsupported
+// value rather than becoming a synthetic measurement.
+void SeedBatteryLifetimePaths(struct healthd_config* config) {
 #ifdef OPLUS_HEALTH_BATTERY_STATE_OF_HEALTH_PATH
     config->batteryStateOfHealthPath =
             android::String8(OPLUS_HEALTH_BATTERY_STATE_OF_HEALTH_PATH);
 #endif
 #ifdef OPLUS_HEALTH_BATTERY_CYCLE_COUNT_PATH
     config->batteryCycleCountPath = android::String8(OPLUS_HEALTH_BATTERY_CYCLE_COUNT_PATH);
+#endif
+#ifdef OPLUS_HEALTH_BATTERY_FULL_CHARGE_PATH
+    config->batteryFullChargePath = android::String8(OPLUS_HEALTH_BATTERY_FULL_CHARGE_PATH);
+#endif
+#ifdef OPLUS_HEALTH_BATTERY_FULL_CHARGE_DESIGN_CAPACITY_UAH_PATH
+    config->batteryFullChargeDesignCapacityUahPath =
+            android::String8(OPLUS_HEALTH_BATTERY_FULL_CHARGE_DESIGN_CAPACITY_UAH_PATH);
 #endif
 #ifdef OPLUS_HEALTH_BATTERY_FIRST_USAGE_DATE_PATH
     config->batteryFirstUsageDatePath =
@@ -71,7 +76,7 @@ int main(int argc, char** argv) {
 
     auto config = std::make_unique<healthd_config>();
     ::android::hardware::health::InitHealthdConfig(config.get());
-    SeedOplusChgHealthPaths(config.get());
+    SeedBatteryLifetimePaths(config.get());
     auto binder = ndk::SharedRefBase::make<Health>(gInstanceName, std::move(config));
 
     if (argc >= 2 && argv[1] == gChargerArg) {

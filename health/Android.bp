@@ -10,6 +10,8 @@ soong_config_module_type {
     value_variables: [
         "battery_state_of_health_path",
         "battery_cycle_count_path",
+        "battery_full_charge_path",
+        "battery_full_charge_design_capacity_uah_path",
         "battery_first_usage_date_path",
     ],
     properties: ["cflags"],
@@ -27,6 +29,14 @@ oplus_health_cc_defaults {
         },
         battery_cycle_count_path: {
             cflags: ["-DOPLUS_HEALTH_BATTERY_CYCLE_COUNT_PATH=\"%s\""],
+        },
+        battery_full_charge_path: {
+            cflags: ["-DOPLUS_HEALTH_BATTERY_FULL_CHARGE_PATH=\"%s\""],
+        },
+        battery_full_charge_design_capacity_uah_path: {
+            cflags: [
+                "-DOPLUS_HEALTH_BATTERY_FULL_CHARGE_DESIGN_CAPACITY_UAH_PATH=\"%s\"",
+            ],
         },
         battery_first_usage_date_path: {
             cflags: ["-DOPLUS_HEALTH_BATTERY_FIRST_USAGE_DATE_PATH=\"%s\""],
