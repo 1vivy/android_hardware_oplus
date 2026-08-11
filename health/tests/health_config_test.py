@@ -38,6 +38,17 @@ class HealthConfigTest(unittest.TestCase):
                 self.assertIn(f"config->{config_field}", health_cpp)
                 self.assertIn(define, health_cpp)
 
+    def test_placeholder_maximum_capacity_is_reported_as_unsupported(self):
+        health_cpp = (HEALTH_DIR / "Health.cpp").read_text()
+
+        android_bp = (HEALTH_DIR / "Android.bp").read_text()
+
+        self.assertIn('"battery_full_charge_requires_independent_value"', android_bp)
+        self.assertIn("OPLUS_HEALTH_FULL_CHARGE_REQUIRES_INDEPENDENT_VALUE", android_bp)
+        self.assertIn("full_charge <= 0", health_cpp)
+        self.assertIn("full_charge == design_capacity", health_cpp)
+        self.assertIn("health_info->batteryFullChargeUah = 0", health_cpp)
+
 
 if __name__ == "__main__":
     unittest.main()

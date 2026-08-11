@@ -20,6 +20,7 @@
 
 using aidl::android::hardware::health::HalHealthLoop;
 using aidl::android::hardware::health::Health;
+using aidl::android::hardware::health::HealthInfo;
 
 #if !CHARGER_FORCE_NO_UI
 using aidl::android::hardware::health::charger::ChargerCallback;
@@ -40,6 +41,26 @@ class ChargerCallbackImpl : public ChargerCallback {
 #endif
 
 namespace {
+
+class OplusHealth : public Health {
+  public:
+    using Health::Health;
+
+  protected:
+    void UpdateHealthInfo(HealthInfo* health_info) override {
+        Health::UpdateHealthInfo(health_info);
+        const int32_t full_charge = health_info->batteryFullChargeUah;
+        const int32_t design_capacity = health_info->batteryFullChargeDesignCapacityUah;
+        if (full_charge <= 0) {
+            health_info->batteryFullChargeUah = 0;
+        }
+#ifdef OPLUS_HEALTH_FULL_CHARGE_REQUIRES_INDEPENDENT_VALUE
+        else if (design_capacity > 0 && full_charge == design_capacity) {
+            health_info->batteryFullChargeUah = 0;
+        }
+#endif
+    }
+};
 
 // Seed device-selected lifetime telemetry before BatteryMonitor::init(). This
 // both reaches attributes outside /sys/class/power_supply and prevents
@@ -77,7 +98,7 @@ int main(int argc, char** argv) {
     auto config = std::make_unique<healthd_config>();
     ::android::hardware::health::InitHealthdConfig(config.get());
     SeedBatteryLifetimePaths(config.get());
-    auto binder = ndk::SharedRefBase::make<Health>(gInstanceName, std::move(config));
+    auto binder = ndk::SharedRefBase::make<OplusHealth>(gInstanceName, std::move(config));
 
     if (argc >= 2 && argv[1] == gChargerArg) {
 #if !CHARGER_FORCE_NO_UI

@@ -7,6 +7,9 @@ soong_config_module_type {
     name: "oplus_health_cc_defaults",
     module_type: "cc_defaults",
     config_namespace: "oplus_health",
+    bool_variables: [
+        "battery_full_charge_requires_independent_value",
+    ],
     value_variables: [
         "battery_state_of_health_path",
         "battery_cycle_count_path",
@@ -24,6 +27,9 @@ soong_config_module_type {
 oplus_health_cc_defaults {
     name: "android.hardware.health-service.oplus-nodes",
     soong_config_variables: {
+        battery_full_charge_requires_independent_value: {
+            cflags: ["-DOPLUS_HEALTH_FULL_CHARGE_REQUIRES_INDEPENDENT_VALUE"],
+        },
         battery_state_of_health_path: {
             cflags: ["-DOPLUS_HEALTH_BATTERY_STATE_OF_HEALTH_PATH=\"%s\""],
         },
