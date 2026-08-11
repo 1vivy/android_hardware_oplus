@@ -10,6 +10,8 @@ import android.os.PersistableBundle;
 import android.telecom.TelecomManager;
 import android.telephony.CarrierConfigManager;
 import android.telephony.ims.ImsMmTelManager;
+import android.telephony.ims.feature.MmTelFeature;
+import android.telephony.ims.stub.ImsRegistrationImplBase;
 import android.util.Log;
 
 import java.util.List;
