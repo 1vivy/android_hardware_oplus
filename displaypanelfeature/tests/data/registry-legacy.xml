@@ -2,6 +2,6 @@
 <!-- A row using only the original three-source schema: no path/scale/offset/producer/status. -->
 <displayPanelFeatures>
     <feature id="217" direction="both" payload="scalar" source="property"
-             property="persist.vendor.displaypanel.longrui_aod" />
+             property="persist.sys.displaypanel.longrui_aod" />
     <feature id="233" direction="get" payload="probe" source="support-probe" />
 </displayPanelFeatures>

@@ -28,7 +28,7 @@ import android.view.Display;
 public class AospLtpoBridgeService extends Service {
     private static final String TAG = "AospLtpoBridge";
 
-    static final String PROP_AOSP_MODE = "persist.vendor.displaypanel.ltpo_aosp_mode";
+    static final String PROP_AOSP_MODE = "persist.sys.displaypanel.ltpo_aosp_mode";
 
     private DisplayManager mDisplayManager;
     private final DisplayManager.DisplayListener mListener = new DisplayManager.DisplayListener() {

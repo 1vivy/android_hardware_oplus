@@ -7,7 +7,7 @@ set_prop(system_app, system_oplus_display_prop)
 # LTPO Settings
 rw_dir_file(system_app, vendor_sysfs_graphics)
 hal_client_domain(system_app, vendor_hal_oplus_displaypanelfeature)
-set_prop(system_app, vendor_displaypanel_publisher_prop)
+set_prop(system_app, system_displaypanel_publisher_prop)
 
 # Gamespace
 r_dir_file(system_app, vendor_sysfs_sde_crtc)

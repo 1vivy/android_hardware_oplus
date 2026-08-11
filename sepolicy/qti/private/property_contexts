@@ -30,6 +30,7 @@ ro.vendor.oplus.regionmark       u:object_r:exported_system_prop:s0
 awb.purecolor.enable               u:object_r:exported_system_prop:s0
 awb.wbcore.                        u:object_r:exported_system_prop:s0
 persist.oplus.display.vrr.adfr     u:object_r:exported_system_prop:s0
+persist.sys.displaypanel.          u:object_r:system_displaypanel_publisher_prop:s0
 persist.sys.display.iris.absent    u:object_r:system_oplus_iris_prop:s0
 persist.sys.oplus.display.dc_alpha u:object_r:system_oplus_display_prop:s0
 ro.oplus.display.                  u:object_r:exported_system_prop:s0

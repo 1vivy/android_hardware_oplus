@@ -24,7 +24,7 @@ namespace {
 
 constexpr auto kAdfrConfigPath = "/vendor/etc/display/multimedia_display_adfr2minfps_config.xml";
 constexpr auto kMinFpsSysfsPath = "/sys/kernel/oplus_display/min_fps";
-constexpr auto kAospModeProperty = "persist.vendor.displaypanel.ltpo_aosp_mode";
+constexpr auto kAospModeProperty = "persist.sys.displaypanel.ltpo_aosp_mode";
 constexpr auto kPollInterval = 200ms;
 
 // The panel's declared mode set (device tree / dumpsys display). Anything else read

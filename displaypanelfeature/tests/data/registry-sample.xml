@@ -15,17 +15,17 @@
       (staging/features-v2/colour-profiles, commit 65f64dd), which calls
       setDisplayPanelFeatureValue(4, seedMode) directly on every user
       colour-mode selection - not through this row's own
-      persist.vendor.displaypanel.seed property, which stays unwritten. The
+      persist.sys.displaypanel.seed property, which stays unwritten. The
       panel accepts seeds 0..4 only; seeds outside that range are rejected by
       the driver. This row must stay status="active": it is not inert and
       must not be treated as reserved.
     -->
     <feature id="4" direction="both" payload="scalar" source="property"
-             property="persist.vendor.displaypanel.seed"
+             property="persist.sys.displaypanel.seed"
              status="active"
              producer="aidl/livedisplay/DisplayModes.cpp (staging/features-v2/colour-profiles, commit 65f64dd) - direct setDisplayPanelFeatureValue(4, seedMode) call on colour-mode selection; see wave7/DESIGN-registry-collapse.md correction and wave7/TOPIC-colour-modes.md sec.2a" />
     <feature id="217" direction="both" payload="scalar" source="property"
-             property="persist.vendor.displaypanel.longrui_aod"
+             property="persist.sys.displaypanel.longrui_aod"
              producer="frameworks/base packages/SystemUI/.../doze/DozeMachine.java transitionTo(): writes bit0+bit2 (5) entering full-screen AOD, 0 leaving - see wave7/TOPIC-adfr-inputs.md sec.'Concrete delta'" />
     <feature id="232" direction="set" payload="adfr-control" source="adfr-xml" />
     <feature id="234" direction="set" payload="adfr-config" source="adfr-xml" />

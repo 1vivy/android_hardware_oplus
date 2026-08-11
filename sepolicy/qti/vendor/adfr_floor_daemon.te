@@ -3,6 +3,6 @@ type vendor_adfr_floor_daemon_exec, exec_type, vendor_file_type, file_type;
 
 init_daemon_domain(vendor_adfr_floor_daemon)
 
-get_prop(vendor_adfr_floor_daemon, vendor_displaypanel_publisher_prop)
+get_prop(vendor_adfr_floor_daemon, system_displaypanel_publisher_prop)
 r_dir_file(vendor_adfr_floor_daemon, vendor_configs_file)
 rw_dir_file(vendor_adfr_floor_daemon, vendor_sysfs_graphics)
