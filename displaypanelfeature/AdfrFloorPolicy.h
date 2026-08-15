@@ -26,7 +26,20 @@ namespace oplus::displaypanelfeature {
 //   cadence.
 constexpr int kFloorGateModeHz = 60;
 
-int ComputeAdfrFloor(const AdfrPayload& payload, int active_mode_hz);
+// Which descent tier of the shipped payload applies. The payload declares two
+// genuinely different tiers - minfps{120,90,60}_level and aod_minfps{120,90,60}_level
+// - and reading only the interactive one left the AOD rows dead data.
+//
+// Selecting the tier is DERIVED (the shipped tables are named for it). Everything
+// else about AOD is not: the bucket structure pairing positions with brightness/gray
+// thresholds is underived, and the shipped registry names no AOD state signal at all
+// (its row 217 is `OemFeature217`, reserved/unowned - the "AOD" naming appears only
+// in a host fixture that declares itself non-shipped). So the caller states the
+// activity explicitly; nothing here infers it. See i33-aod-floor-finding.md.
+enum class PanelActivity { kInteractive, kAod };
+
+int ComputeAdfrFloor(const AdfrPayload& payload, int active_mode_hz,
+                     PanelActivity activity = PanelActivity::kInteractive);
 
 // The panel's declared mode set. Anything else - unset, stale, or malformed - is
 // "not yet known" and must never reach a sysfs write.
@@ -40,6 +53,7 @@ bool IsKnownPanelMode(int mode_hz);
 // holds no policy of its own and, in particular, no timer: an unknown mode returns
 // nothing rather than being retried on a clock.
 std::optional<int> NextFloorWrite(const AdfrPayload& payload, int observed_mode_hz,
-                                  std::optional<int> last_written);
+                                  std::optional<int> last_written,
+                                  PanelActivity activity = PanelActivity::kInteractive);
 
 }  // namespace oplus::displaypanelfeature

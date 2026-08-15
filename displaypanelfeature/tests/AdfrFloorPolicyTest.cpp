@@ -10,17 +10,28 @@
 namespace oplus::displaypanelfeature {
 namespace {
 
-// Mirrors the infiniti-adfr golden payload's minfps120_level (offset 48),
-// minfps90_level (offset 61), and minfps60_level (offset 74) table contents
-// (see tests/data/infiniti-adfr.payload), zero elsewhere.
+// Mirrors the infiniti-adfr golden payload (tests/data/infiniti-adfr.payload) at the
+// offsets AdfrConfig.cpp::kTables declares, zero elsewhere.
+//
+// The aod_* rows were ABSENT from this fixture until 2026-08-15, which made it a poor
+// stand-in for the shipped payload: the AOD tier read as all-zero padding, so a test
+// could not have told tier selection from tier blindness. They are 8 values where the
+// interactive rows are 10 - that difference is the shipped data's own, and it is what
+// lets a test prove which tier was read.
 AdfrPayload InfinitiPayload() {
     AdfrPayload payload{};
     const int minfps120[] = {1, 1, 30, 1, 120, 1, 120, 10, 120, 10};
     const int minfps90[] = {1, 1, 30, 1, 90, 1, 90, 10, 90, 10};
     const int minfps60[] = {1, 1, 30, 1, 60, 1, 60, 10, 60, 10};
+    const int aod120[] = {1, 1, 30, 1, 120, 1, 120, 10};
+    const int aod90[] = {1, 1, 30, 1, 90, 1, 90, 10};
+    const int aod60[] = {1, 1, 30, 1, 60, 1, 60, 10};
     for (size_t i = 0; i < 10; ++i) payload[48 + i] = minfps120[i];
     for (size_t i = 0; i < 10; ++i) payload[61 + i] = minfps90[i];
     for (size_t i = 0; i < 10; ++i) payload[74 + i] = minfps60[i];
+    for (size_t i = 0; i < 8; ++i) payload[117 + i] = aod120[i];
+    for (size_t i = 0; i < 8; ++i) payload[130 + i] = aod90[i];
+    for (size_t i = 0; i < 8; ++i) payload[143 + i] = aod60[i];
     return payload;
 }
 
@@ -139,6 +150,54 @@ TEST(AdfrFloorPolicyTest, KnownPanelModeSetIsExactlyTheDeclaredModes) {
     for (const int mode : {0, -1, 30, 61, 119, 166, 240}) {
         EXPECT_FALSE(IsKnownPanelMode(mode)) << "undeclared mode " << mode << " accepted";
     }
+}
+
+TEST(AdfrFloorPolicyTest, AodTierIsSeparateDataAndIsActuallyRead) {
+    // Given: the shipped payload, whose AOD tier declares FEWER values than its
+    // interactive counterpart (8 vs 10) - proof the two tiers are distinct data.
+    const auto payload = InfinitiPayload();
+    // aod_minfps60_level @143 and minfps60_level @74, per AdfrConfig.cpp::kTables.
+    int interactive_filled = 0;
+    int aod_filled = 0;
+    for (size_t i = 0; i < 13; ++i) {
+        if (payload[74 + i] > 0) ++interactive_filled;
+        if (payload[143 + i] > 0) ++aod_filled;
+    }
+    ASSERT_GT(interactive_filled, aod_filled)
+            << "tiers are indistinguishable; this test can no longer prove tier selection";
+
+    // When / Then: asking for the AOD tier must read the AOD offsets. Both tiers
+    // currently bottom out at the same legal value, so assert the READ, not the
+    // number: mutate the AOD tier alone and only the AOD answer may move.
+    AdfrPayload mutated = payload;
+    for (size_t i = 0; i < 13; ++i) {
+        if (mutated[143 + i] > 0) mutated[143 + i] = 45;
+    }
+    EXPECT_EQ(ComputeAdfrFloor(mutated, kFloorGateModeHz, PanelActivity::kAod), 45);
+    EXPECT_EQ(ComputeAdfrFloor(mutated, kFloorGateModeHz, PanelActivity::kInteractive),
+              ComputeAdfrFloor(payload, kFloorGateModeHz, PanelActivity::kInteractive));
+}
+
+TEST(AdfrFloorPolicyTest, InteractiveTierIsUnaffectedByTheAodTier) {
+    // Given: a payload whose INTERACTIVE tier alone is mutated.
+    AdfrPayload mutated = InfinitiPayload();
+    for (size_t i = 0; i < 13; ++i) {
+        if (mutated[74 + i] > 0) mutated[74 + i] = 33;
+    }
+
+    // When / Then: the AOD answer must not follow the interactive tier.
+    EXPECT_EQ(ComputeAdfrFloor(mutated, kFloorGateModeHz, PanelActivity::kInteractive), 33);
+    EXPECT_NE(ComputeAdfrFloor(mutated, kFloorGateModeHz, PanelActivity::kAod), 33);
+}
+
+TEST(AdfrFloorPolicyTest, TheDescentGateIsIdenticalForBothTiers) {
+    // Given: the shipped payload at a mode ABOVE the gate.
+    const auto payload = InfinitiPayload();
+
+    // When / Then: neither tier may descend before AOSP settles at the gate mode.
+    // Selecting a tier is derived; changing WHEN a floor may descend would not be.
+    EXPECT_EQ(ComputeAdfrFloor(payload, 120, PanelActivity::kAod), 120);
+    EXPECT_EQ(ComputeAdfrFloor(payload, 120, PanelActivity::kInteractive), 120);
 }
 
 }  // namespace
