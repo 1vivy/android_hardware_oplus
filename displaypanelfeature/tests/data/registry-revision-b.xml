@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  I30 schema-revision fixture. This stands for a LATER OOS config revision whose
+  internal routing moved while the semantic capabilities did not:
+
+    * "Seed" keeps its semantic identity but moves from base id 4 to base id 5.
+    * Base id 4 is now an unrelated RESERVED slot, so a caller that cached the
+      old id addresses nothing rather than silently steering the new Seed route.
+    * "Cabc" is GONE from this revision, so its shipped id must become explicitly
+      unsupported rather than resolving to whatever now occupies nearby space.
+
+  serviceSha256 is not a claim about any real binary: it is
+  sha256("features-v6 I30 schema-revision fixture B"), reproducible with
+  `printf '%s' 'features-v6 I30 schema-revision fixture B' | sha256sum`, and it
+  differs from the shipped map's hash precisely because this is a different
+  revision.
+-->
+<displayPanelFeatures schemaVersion="1" serviceSha256="e2ef602b2e276273441cb7c53389ac3d0e1dee5e68d805f4e9e15a080ee855eb" setCount="3" getCount="3">
+  <display role="primary" id="0" aliases="AA601_P_7_A0020,AD296_P_3_A0020" />
+  <display role="secondary" id="1" aliases="secondary" />
+  <feature id="4" name="RetiredSlot4" direction="both" payload="scalar" handler="compiled-switch:4:RetiredSlot4" producer="unowned" status="reserved" displays="primary,secondary" min="-2147483648" max="2147483647" />
+  <feature id="5" name="Seed" direction="both" payload="scalar" handler="compiled-switch:5:Seed" producer="typed-client" status="active" displays="primary,secondary" min="0" max="4" />
+  <feature id="12" name="Hbm" direction="both" payload="scalar" handler="compiled-switch:12:Hbm" producer="typed-client" status="active" displays="primary,secondary" min="0" max="1" />
+</displayPanelFeatures>

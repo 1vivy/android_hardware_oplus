@@ -1,0 +1,5 @@
+service vendor.displaypanelfeature-default /vendor/bin/hw/vendor.oplus.hardware.displaypanelfeature-service.oplus
+    interface aidl vendor.oplus.hardware.displaypanelfeature.IDisplayPanelFeature/default
+    class hal
+    user system
+    group system graphics
