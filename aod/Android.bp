@@ -36,3 +36,65 @@ cc_binary {
 
     system_ext_specific: true,
 }
+
+cc_library_static {
+    name: "liboplus_aod_panel_policy",
+    host_supported: true,
+    srcs: ["AodPanelPolicy.cpp"],
+    export_include_dirs: ["."],
+    static_libs: ["liboplus_displaypanelfeature_client"],
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
+}
+
+cc_test_host {
+    name: "oplus_aod_panel_policy_test",
+    srcs: ["tests/AodPanelPolicyTest.cpp"],
+    static_libs: [
+        "liboplus_aod_panel_policy",
+        "liboplus_displaypanelfeature_client",
+    ],
+    shared_libs: [
+        "libbase",
+        "libcrypto",
+        "libtinyxml2",
+    ],
+    data: [
+        "//hardware/oplus/displaypanelfeature:displaypanelfeature_infiniti_registry",
+    ],
+    test_options: { unit_test: true },
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
+}
+
+cc_binary {
+    name: "oplus_aod_panel_state",
+    system_ext_specific: true,
+    init_rc: ["oplus_aod_panel_state.rc"],
+    srcs: [
+        "AodPanelStateService.cpp",
+        "aod_panel_state_service.cpp",
+    ],
+    static_libs: [
+        "liboplus_aod_panel_policy",
+        "liboplus_displaypanelfeature_aidl_transport",
+        "liboplus_displaypanelfeature_client",
+    ],
+    shared_libs: [
+        "libbase",
+        "libbinder_ndk",
+        "libcrypto",
+        "liblog",
+        "libtinyxml2",
+        "vendor.oplus.hardware.aodpanelstate-ndk",
+        "vendor.oplus.hardware.displaypanelfeature-V1-ndk",
+    ],
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
+}

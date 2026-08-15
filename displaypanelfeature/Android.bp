@@ -15,6 +15,12 @@ cc_library_static {
     cflags: ["-Wall", "-Werror"],
 }
 
+filegroup {
+    name: "displaypanelfeature_infiniti_registry",
+    srcs: ["configs/displaypanelfeature_infiniti.xml"],
+    visibility: ["//hardware/oplus/aod:__pkg__"],
+}
+
 cc_library_static {
     name: "liboplus_displaypanelfeature_client",
     vendor_available: true,

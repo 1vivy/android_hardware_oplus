@@ -21,6 +21,7 @@ class PanelWriterClient {
     bool GetUltraLowPowerAod(bool* enabled, std::string* error) const;
     bool SetUltraLowPowerAod(bool enabled, std::string* error) const;
     bool SetLowPwmAod(bool enabled, std::string* error) const;
+    bool SetLongruiAodActive(bool active, std::string* error) const;
 
   private:
     bool GetBool(const std::string& feature, bool* value, std::string* error) const;
