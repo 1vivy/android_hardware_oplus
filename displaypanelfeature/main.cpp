@@ -26,8 +26,6 @@ namespace {
 
 constexpr auto kRegistryPath = "/vendor/etc/display/displaypanelfeature_publisher.xml";
 constexpr auto kAdfrConfigPath = "/vendor/etc/display/multimedia_display_adfr2minfps_config.xml";
-constexpr auto kOemServicePath =
-        "/odm/bin/hw/vendor.oplus.hardware.displaypanelfeature-service";
 
 bool PublishAdfr(const DisplayPanelFeatureClient& client) {
     std::string error;
@@ -86,11 +84,11 @@ int main() {
         LOG(ERROR) << "feature registry rejected: " << error;
         return EXIT_FAILURE;
     }
-    const auto serviceHash = Sha256File(kOemServicePath);
-    if (!serviceHash || !registry->ValidateServiceHash(*serviceHash, &error)) {
-        LOG(ERROR) << "OEM service provenance rejected: " << error;
-        return EXIT_FAILURE;
-    }
+    // The registry's serviceSha256 records which stock binary the map was
+    // DERIVED from; it is provenance for the derivation, not a runtime
+    // dependency. The default instance is now served from this tree, so the ODM
+    // binary is no longer installed and hashing it at startup would refuse a
+    // correct build. Provenance is checked where the map is generated.
     const DisplayPanelFeatureClient client(registry, CreateAidlPanelFeatureTransport());
     if (!PublishAdfr(client)) return EXIT_FAILURE;
 
