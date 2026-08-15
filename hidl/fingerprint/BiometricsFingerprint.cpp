@@ -18,6 +18,10 @@
 
 #include "BiometricsFingerprint.h"
 
+#include <AidlPanelFeatureTransport.h>
+
+#include <utility>
+
 namespace android {
 namespace hardware {
 namespace biometrics {
@@ -25,8 +29,15 @@ namespace fingerprint {
 namespace V2_3 {
 namespace implementation {
 
-BiometricsFingerprint::BiometricsFingerprint()
-    : mOplusDisplayFd(open("/dev/oplus_display", O_RDWR)) {
+BiometricsFingerprint::BiometricsFingerprint() {
+    std::string error;
+    auto panelClient = ::oplus::displaypanelfeature::CreateAidlDisplayPanelFeatureClient(&error);
+    if (panelClient) {
+        mPanelWriter = std::make_unique<::oplus::displaypanelfeature::PanelWriterClient>(
+                std::move(panelClient));
+    } else {
+        ALOGE("DPF client unavailable: %s", error.c_str());
+    }
     mOplusBiometricsFingerprint = IOplusBiometricsFingerprint::getService();
     mOplusBiometricsFingerprint->setHalCallback(this);
 }

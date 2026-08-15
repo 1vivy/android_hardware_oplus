@@ -7,18 +7,18 @@
 
 #include <oplus/aod/UltraLowPowerAod.h>
 
+#include <AidlPanelFeatureTransport.h>
 #include <android-base/logging.h>
-#include <fcntl.h>
-#include <oplus/oplus_display_panel.h>
-#include <sys/ioctl.h>
 #include <time.h>
+
+#include <string>
+#include <utility>
 
 namespace oplus {
 namespace aod {
 
 namespace {
 
-constexpr char kPanelDevice[] = "/dev/oplus_display";
 constexpr int64_t kLogIntervalNs = 60LL * 1000 * 1000 * 1000;
 
 int64_t nowNs() {
@@ -29,58 +29,41 @@ int64_t nowNs() {
 
 }  // namespace
 
-UltraLowPowerAod::UltraLowPowerAod()
-    : mFd(::android::base::unique_fd(open(kPanelDevice, O_RDWR | O_CLOEXEC))) {
-    if (mFd.get() < 0) {
-        logThrottled("open", errno);
+UltraLowPowerAod::UltraLowPowerAod() {
+    std::string error;
+    auto panelClient = ::oplus::displaypanelfeature::CreateAidlDisplayPanelFeatureClient(&error);
+    if (panelClient) {
+        mPanelWriter = std::make_unique<::oplus::displaypanelfeature::PanelWriterClient>(
+                std::move(panelClient));
+    } else {
+        logThrottled(error);
     }
 }
 
 // Rate limited so a panel that rejects the whole feature cannot turn every AOD
 // transition into a log entry.
-void UltraLowPowerAod::logThrottled(const char* what, int error) {
+void UltraLowPowerAod::logThrottled(const std::string& error) {
     const int64_t now = nowNs();
     if (mLastLogNs != 0 && now - mLastLogNs < kLogIntervalNs) {
         return;
     }
     mLastLogNs = now;
-    LOG(WARNING) << "ultra-low-power AOD unavailable (" << what << ": " << strerror(error)
+    LOG(WARNING) << "ultra-low-power AOD unavailable (" << error
                  << "); leaving plain AOD in control";
 }
 
-bool UltraLowPowerAod::get(unsigned long request, unsigned int* value, const char* what) {
-    if (mFd.get() < 0) {
-        return false;
-    }
-    if (ioctl(mFd.get(), request, value) != 0) {
-        logThrottled(what, errno);
-        return false;
-    }
-    return true;
-}
-
-bool UltraLowPowerAod::set(unsigned long request, unsigned int value, const char* what) {
-    if (mFd.get() < 0) {
-        return false;
-    }
-    if (ioctl(mFd.get(), request, &value) != 0) {
-        logThrottled(what, errno);
-        return false;
-    }
-    return true;
-}
-
 bool UltraLowPowerAod::isSupported() {
-    unsigned int value = 0;
-    return get(PANEL_IOCTL_GET_ULTRA_LOW_POWER_AOD, &value, "probe");
+    bool enabled = false;
+    return getEnabled(&enabled);
 }
 
 bool UltraLowPowerAod::getEnabled(bool* enabled) {
-    unsigned int value = 0;
-    if (!get(PANEL_IOCTL_GET_ULTRA_LOW_POWER_AOD, &value, "get")) {
+    if (!mPanelWriter) return false;
+    std::string error;
+    if (!mPanelWriter->GetUltraLowPowerAod(enabled, &error)) {
+        logThrottled(error);
         return false;
     }
-    *enabled = value > 0;
     return true;
 }
 
@@ -94,11 +77,22 @@ bool UltraLowPowerAod::setEnabled(bool enabled) {
     if (current == enabled) {
         return true;
     }
-    return set(PANEL_IOCTL_SET_ULTRA_LOW_POWER_AOD, enabled ? 1 : 0, "set");
+    std::string error;
+    if (!mPanelWriter->SetUltraLowPowerAod(enabled, &error)) {
+        logThrottled(error);
+        return false;
+    }
+    return true;
 }
 
 bool UltraLowPowerAod::setLowPwmAod(bool enabled) {
-    return set(PANEL_IOCTL_SET_LOW_PWM_AOD, enabled ? 1 : 0, "set-low-pwm");
+    if (!mPanelWriter) return false;
+    std::string error;
+    if (!mPanelWriter->SetLowPwmAod(enabled, &error)) {
+        logThrottled(error);
+        return false;
+    }
+    return true;
 }
 
 }  // namespace aod

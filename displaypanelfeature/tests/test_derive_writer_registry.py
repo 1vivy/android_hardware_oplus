@@ -16,6 +16,13 @@ DISPATCH = ROOT / "configs" / "displaypanelfeature_dispatch_map.tsv"
 WRITERS = ROOT / "configs" / "displaypanelfeature_writer_features.tsv"
 TEMPLATE = ROOT / "configs" / "displaypanelfeature_infiniti.xml.in"
 SHIPPED = ROOT / "configs" / "displaypanelfeature_infiniti.xml"
+REPOSITORY = ROOT.parent
+DIRECT_WRITER_CONSUMERS = (
+    REPOSITORY / "hidl" / "fingerprint" / "BiometricsFingerprint.h",
+    REPOSITORY / "hidl" / "fingerprint" / "BiometricsFingerprint.cpp",
+    REPOSITORY / "aod" / "include" / "oplus" / "aod" / "UltraLowPowerAod.h",
+    REPOSITORY / "aod" / "UltraLowPowerAod.cpp",
+)
 
 
 class DerivationTool(Protocol):
@@ -61,7 +68,7 @@ def test_production_derivation_reproduces_the_shipped_registry(tmp_path: Path) -
         "DimlayerHbm": ("22", "both", "typed-client", "active", "0", "1"),
         "FpPress": ("28", "set", "typed-client", "active", "0", "1"),
         "UltraLowPowerAod": ("195", "both", "typed-client", "active", "0", "1"),
-        "LowPwmAod": ("263", "set", "typed-client", "active", "0", "1"),
+        "LowPwmAod": ("263", "both", "typed-client", "active", "0", "1"),
     }
 
 
@@ -106,3 +113,22 @@ def test_ambiguous_dispatch_handler_refuses_instead_of_picking_one(
 
     with pytest.raises(_tool().DerivationError, match="duplicate feature id"):
         _tool().derive_registry(TEMPLATE, mutated, WRITERS, tmp_path / "registry.xml")
+
+
+def test_direct_consumers_have_no_panel_device_fallback_writer() -> None:
+    banned = (
+        "/dev/oplus_display",
+        "PANEL_IOCTL_SET_DIMLAYER_HBM",
+        "PANEL_IOCTL_SET_FP_PRESS",
+        "PANEL_IOCTL_GET_ULTRA_LOW_POWER_AOD",
+        "PANEL_IOCTL_SET_ULTRA_LOW_POWER_AOD",
+        "PANEL_IOCTL_SET_LOW_PWM_AOD",
+    )
+    for consumer in DIRECT_WRITER_CONSUMERS:
+        text = consumer.read_text(encoding="utf-8")
+        assert all(token not in text for token in banned), consumer
+
+    server = (ROOT / "service.cpp").read_text(encoding="utf-8")
+    backend = (ROOT / "IoctlPanelBackend.cpp").read_text(encoding="utf-8")
+    assert "/dev/oplus_display" in server
+    assert all(token in backend for token in banned[1:])

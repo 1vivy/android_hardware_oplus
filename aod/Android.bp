@@ -15,11 +15,18 @@ cc_binary {
 
     local_include_dirs: ["include"],
 
-    header_libs: ["kernel_headers.oplus"],
-
     shared_libs: [
         "libbase",
+        "libbinder_ndk",
+        "libcrypto",
         "liblog",
+        "libtinyxml2",
+        "vendor.oplus.hardware.displaypanelfeature-V1-ndk",
+    ],
+
+    static_libs: [
+        "liboplus_displaypanelfeature_aidl_transport",
+        "liboplus_displaypanelfeature_client",
     ],
 
     cflags: [

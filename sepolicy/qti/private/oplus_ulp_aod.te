@@ -5,4 +5,4 @@ init_daemon_domain(oplus_ulp_aod)
 
 get_prop(oplus_ulp_aod, system_prop)
 
-allow oplus_ulp_aod graphics_device:chr_file rw_file_perms;
+hal_client_domain(oplus_ulp_aod, vendor_hal_oplus_displaypanelfeature)

@@ -26,8 +26,11 @@
 #include <hidl/Status.h>
 #include <log/log.h>
 
-#include <oplus/oplus_display_panel.h>
+#include <PanelWriterClient.h>
 #include <vendor/oplus/hardware/biometrics/fingerprint/2.1/IBiometricsFingerprint.h>
+
+#include <memory>
+#include <string>
 
 namespace android {
 namespace hardware {
@@ -121,17 +124,21 @@ class BiometricsFingerprint : public IBiometricsFingerprint,
     }
 
     bool setDimlayerHbm(unsigned int value) {
-        return isUdfps() && ioctl(mOplusDisplayFd, PANEL_IOCTL_SET_DIMLAYER_HBM, &value) == 0;
+        if (!isUdfps() || !mPanelWriter) return false;
+        std::string error;
+        return mPanelWriter->SetDimlayerHbm(value > 0, &error);
     }
 
     bool setFpPress(unsigned int value) {
-        return isUdfps() && ioctl(mOplusDisplayFd, PANEL_IOCTL_SET_FP_PRESS, &value) == 0;
+        if (!isUdfps() || !mPanelWriter) return false;
+        std::string error;
+        return mPanelWriter->SetFpPress(value > 0, &error);
     }
 
     sp<IOplusBiometricsFingerprint> mOplusBiometricsFingerprint;
     sp<V2_1::IBiometricsFingerprintClientCallback> mClientCallback;
 
-    int mOplusDisplayFd;
+    std::unique_ptr<::oplus::displaypanelfeature::PanelWriterClient> mPanelWriter;
 };
 
 }  // namespace implementation

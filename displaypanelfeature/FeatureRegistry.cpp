@@ -254,6 +254,12 @@ const FeatureEntry* FeatureRegistry::Find(int32_t id) const {
     return entry == entries_.end() ? nullptr : &*entry;
 }
 
+const FeatureEntry* FeatureRegistry::Find(const std::string& name) const {
+    const auto entry = std::find_if(entries_.begin(), entries_.end(),
+                                    [&name](const FeatureEntry& row) { return row.name == name; });
+    return entry == entries_.end() ? nullptr : &*entry;
+}
+
 std::optional<int32_t> FeatureRegistry::DisplayId(DisplayRole role) const {
     const auto display = displays_.find(role);
     return display == displays_.end() ? std::nullopt : std::optional(display->second);

@@ -46,6 +46,7 @@ class FeatureRegistry {
     static std::shared_ptr<const FeatureRegistry> Load(const std::string& path, std::string* error);
 
     const FeatureEntry* Find(int32_t id) const;
+    const FeatureEntry* Find(const std::string& name) const;
     std::optional<int32_t> DisplayId(DisplayRole role) const;
     bool ValidateServiceHash(const std::string& actualHash, std::string* error) const;
 

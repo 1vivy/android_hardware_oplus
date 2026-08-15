@@ -46,9 +46,13 @@ class DisplayPanelFeatureClient {
              std::string* error) const;
     bool GetScalar(DisplayRole display, FeatureId feature, int32_t* value,
                    std::string* error) const;
+    bool GetScalar(DisplayRole display, const std::string& feature, int32_t* value,
+                   std::string* error) const;
     bool Set(DisplayRole display, FeatureId feature, const std::vector<int32_t>& values,
              std::string* error) const;
     bool SetScalar(DisplayRole display, FeatureId feature, int32_t value, std::string* error) const;
+    bool SetScalar(DisplayRole display, const std::string& feature, int32_t value,
+                   std::string* error) const;
 
     // Writes a scalar and PROVES the panel took it by reading the value back.
     //

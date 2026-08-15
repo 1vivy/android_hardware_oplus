@@ -11,6 +11,7 @@
 #include <android/binder_manager.h>
 
 #include <mutex>
+#include <utility>
 
 namespace oplus::displaypanelfeature {
 namespace {
@@ -18,6 +19,7 @@ namespace {
 using aidl::vendor::oplus::hardware::displaypanelfeature::IDisplayPanelFeature;
 constexpr const char* kService =
         "vendor.oplus.hardware.displaypanelfeature.IDisplayPanelFeature/default";
+constexpr const char* kRegistry = "/vendor/etc/display/displaypanelfeature_publisher.xml";
 
 class AidlTransport final : public PanelFeatureTransport {
   public:
@@ -31,7 +33,7 @@ class AidlTransport final : public PanelFeatureTransport {
         const auto status = service->getDisplayPanelFeatureValue(packedId, values, &result);
         if (!status.isOk() || result != 0) {
             *error = "get rejected: binder=" + status.getDescription() +
-                    " result=" + std::to_string(result);
+                     " result=" + std::to_string(result);
             Invalidate(status);
             return false;
         }
@@ -48,7 +50,7 @@ class AidlTransport final : public PanelFeatureTransport {
         const auto status = service->setDisplayPanelFeatureValue(packedId, values, &result);
         if (!status.isOk() || result != 0) {
             *error = "set rejected: binder=" + status.getDescription() +
-                    " result=" + std::to_string(result);
+                     " result=" + std::to_string(result);
             Invalidate(status);
             return false;
         }
@@ -80,6 +82,15 @@ class AidlTransport final : public PanelFeatureTransport {
 
 std::shared_ptr<PanelFeatureTransport> CreateAidlPanelFeatureTransport() {
     return std::make_shared<AidlTransport>();
+}
+
+std::shared_ptr<DisplayPanelFeatureClient> CreateAidlDisplayPanelFeatureClient(std::string* error) {
+    auto registry = FeatureRegistry::Load(kRegistry, error);
+    if (!registry) {
+        return nullptr;
+    }
+    return std::make_shared<DisplayPanelFeatureClient>(std::move(registry),
+                                                       CreateAidlPanelFeatureTransport());
 }
 
 }  // namespace oplus::displaypanelfeature

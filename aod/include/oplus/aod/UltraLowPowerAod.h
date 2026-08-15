@@ -5,7 +5,11 @@
 
 #pragma once
 
-#include <android-base/unique_fd.h>
+#include <PanelWriterClient.h>
+
+#include <cstdint>
+#include <memory>
+#include <string>
 
 namespace oplus {
 namespace aod {
@@ -21,16 +25,14 @@ class UltraLowPowerAod {
     bool getEnabled(bool* enabled);
     bool setEnabled(bool enabled);
 
-    // Write-only by kernel design: oplus_display_device.c dispatches
-    // PANEL_IOCTL_SET_LOW_PWM_AOD but its GET counterpart is commented out.
+    // The open backend exposes low-PWM AOD as a write-only operation even
+    // though the retained stock front-door map proves a bidirectional route.
     bool setLowPwmAod(bool enabled);
 
   private:
-    bool get(unsigned long request, unsigned int* value, const char* what);
-    bool set(unsigned long request, unsigned int value, const char* what);
-    void logThrottled(const char* what, int error);
+    void logThrottled(const std::string& error);
 
-    ::android::base::unique_fd mFd;
+    std::unique_ptr<::oplus::displaypanelfeature::PanelWriterClient> mPanelWriter;
     int64_t mLastLogNs = 0;
 };
 

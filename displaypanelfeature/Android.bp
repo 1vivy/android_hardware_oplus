@@ -22,6 +22,7 @@ cc_library_static {
     srcs: [
         "DisplayPanelFeatureClient.cpp",
         "FeatureRegistry.cpp",
+        "PanelWriterClient.cpp",
         "Publisher.cpp",
     ],
     export_include_dirs: ["."],
@@ -139,6 +140,20 @@ cc_test_host {
         "libtinyxml2",
     ],
     data: ["tests/data/registry-infiniti-95.xml"],
+    test_options: { unit_test: true },
+    cflags: ["-Wall", "-Werror"],
+}
+
+cc_test_host {
+    name: "displaypanelfeature_panel_writer_client_test",
+    srcs: ["tests/PanelWriterClientTest.cpp"],
+    static_libs: ["liboplus_displaypanelfeature_client"],
+    shared_libs: [
+        "libbase",
+        "libcrypto",
+        "libtinyxml2",
+    ],
+    data: ["configs/displaypanelfeature_infiniti.xml"],
     test_options: { unit_test: true },
     cflags: ["-Wall", "-Werror"],
 }

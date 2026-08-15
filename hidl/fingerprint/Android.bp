@@ -17,14 +17,21 @@ cc_binary {
     ],
     shared_libs: [
         "libbase",
+        "libbinder_ndk",
+        "libcrypto",
         "libhidlbase",
+        "libtinyxml2",
         "libutils",
         "android.hardware.biometrics.fingerprint@2.1",
         "android.hardware.biometrics.fingerprint@2.2",
         "android.hardware.biometrics.fingerprint@2.3",
+        "vendor.oplus.hardware.displaypanelfeature-V1-ndk",
         "vendor.oplus.hardware.biometrics.fingerprint@2.1",
     ],
-    header_libs: ["kernel_headers.oplus"],
+    static_libs: [
+        "liboplus_displaypanelfeature_aidl_transport",
+        "liboplus_displaypanelfeature_client",
+    ],
     required: ["qwerty.kl"],
 }
 

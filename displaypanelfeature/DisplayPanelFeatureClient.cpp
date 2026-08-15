@@ -77,6 +77,16 @@ bool DisplayPanelFeatureClient::GetScalar(DisplayRole display, FeatureId feature
     return true;
 }
 
+bool DisplayPanelFeatureClient::GetScalar(DisplayRole display, const std::string& feature,
+                                          int32_t* value, std::string* error) const {
+    const FeatureEntry* entry = registry_->Find(feature);
+    if (entry == nullptr) {
+        *error = "feature " + feature + " is not declared";
+        return false;
+    }
+    return GetScalar(display, static_cast<FeatureId>(entry->id), value, error);
+}
+
 bool DisplayPanelFeatureClient::Set(DisplayRole display, FeatureId feature,
                                     const std::vector<int32_t>& values, std::string* error) const {
     int32_t packedId;
@@ -87,6 +97,16 @@ bool DisplayPanelFeatureClient::Set(DisplayRole display, FeatureId feature,
 bool DisplayPanelFeatureClient::SetScalar(DisplayRole display, FeatureId feature, int32_t value,
                                           std::string* error) const {
     return Set(display, feature, {value}, error);
+}
+
+bool DisplayPanelFeatureClient::SetScalar(DisplayRole display, const std::string& feature,
+                                          int32_t value, std::string* error) const {
+    const FeatureEntry* entry = registry_->Find(feature);
+    if (entry == nullptr) {
+        *error = "feature " + feature + " is not declared";
+        return false;
+    }
+    return SetScalar(display, static_cast<FeatureId>(entry->id), value, error);
 }
 
 bool DisplayPanelFeatureClient::SetScalarVerified(DisplayRole display, FeatureId feature,
