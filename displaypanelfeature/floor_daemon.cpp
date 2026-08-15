@@ -12,12 +12,10 @@
 #include <android-base/logging.h>
 #include <android-base/properties.h>
 
-#include <chrono>
+#include <sys/system_properties.h>
+
 #include <optional>
 #include <string>
-#include <thread>
-
-using namespace std::chrono_literals;
 
 namespace oplus::displaypanelfeature {
 namespace {
@@ -25,23 +23,6 @@ namespace {
 constexpr auto kAdfrConfigPath = "/vendor/etc/display/multimedia_display_adfr2minfps_config.xml";
 constexpr auto kMinFpsSysfsPath = "/sys/kernel/oplus_display/min_fps";
 constexpr auto kAospModeProperty = "persist.sys.displaypanel.ltpo_aosp_mode";
-constexpr auto kPollInterval = 200ms;
-
-// The panel's declared mode set (device tree / dumpsys display). Anything else read
-// from kAospModeProperty is treated as "not yet known" and skipped rather than acted
-// on, so a stale, unset, or malformed property can never reach the sysfs write.
-bool IsKnownMode(int mode_hz) {
-    switch (mode_hz) {
-        case 60:
-        case 90:
-        case 120:
-        case 144:
-        case 165:
-            return true;
-        default:
-            return false;
-    }
-}
 
 bool WriteMinFps(int floor_hz) {
     const std::string value = std::to_string(floor_hz);
@@ -66,17 +47,36 @@ int main() {
     }
 
     std::optional<int> last_written;
-    while (true) {
+    const auto apply = [&payload, &last_written]() {
         const int mode_hz = android::base::GetIntProperty(kAospModeProperty, 0);
-        if (IsKnownMode(mode_hz)) {
-            const int floor_hz = ComputeAdfrFloor(*payload, mode_hz);
-            if (last_written != floor_hz) {
-                if (WriteMinFps(floor_hz)) {
-                    last_written = floor_hz;
-                    LOG(INFO) << "mode=" << mode_hz << " -> min_fps floor=" << floor_hz;
-                }
-            }
+        const auto floor_hz = NextFloorWrite(*payload, mode_hz, last_written);
+        if (floor_hz && WriteMinFps(*floor_hz)) {
+            last_written = *floor_hz;
+            LOG(INFO) << "mode=" << mode_hz << " -> min_fps floor=" << *floor_hz;
         }
-        std::this_thread::sleep_for(kPollInterval);
+    };
+
+    // Subscribe to the mode property, then act on its edges. This daemon used to
+    // re-read the property every 200ms forever, which is a wakeup five times a
+    // second for the life of the device and, worse, makes a mode transition
+    // observable only on a timer boundary rather than when it happens.
+    //
+    // The property may not exist yet this early in boot, so wait on the global
+    // serial until it appears rather than spinning for it.
+    const prop_info* info = __system_property_find(kAospModeProperty);
+    for (uint32_t global = 0; info == nullptr;) {
+        if (!__system_property_wait(nullptr, global, &global, nullptr)) {
+            LOG(ERROR) << "property subscription failed before " << kAospModeProperty
+                       << " appeared";
+            return EXIT_FAILURE;
+        }
+        info = __system_property_find(kAospModeProperty);
     }
+
+    apply();
+    for (uint32_t serial = 0; __system_property_wait(info, serial, &serial, nullptr);) {
+        apply();
+    }
+    LOG(ERROR) << "property subscription for " << kAospModeProperty << " failed";
+    return EXIT_FAILURE;
 }

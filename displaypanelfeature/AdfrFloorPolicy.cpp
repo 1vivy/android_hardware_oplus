@@ -36,6 +36,27 @@ const AdaptiveTable* FindTable(int active_mode_hz) {
 
 }  // namespace
 
+bool IsKnownPanelMode(int mode_hz) {
+    switch (mode_hz) {
+        case 60:
+        case 90:
+        case 120:
+        case 144:
+        case 165:
+            return true;
+        default:
+            return false;
+    }
+}
+
+std::optional<int> NextFloorWrite(const AdfrPayload& payload, int observed_mode_hz,
+                                  std::optional<int> last_written) {
+    if (!IsKnownPanelMode(observed_mode_hz)) return std::nullopt;
+    const int floor_hz = ComputeAdfrFloor(payload, observed_mode_hz);
+    if (last_written == floor_hz) return std::nullopt;
+    return floor_hz;
+}
+
 int ComputeAdfrFloor(const AdfrPayload& payload, int active_mode_hz) {
     const AdaptiveTable* table = FindTable(active_mode_hz);
     if (table == nullptr) {

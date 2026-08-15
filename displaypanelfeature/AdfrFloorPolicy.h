@@ -7,6 +7,8 @@
 
 #include "AdfrConfig.h"
 
+#include <optional>
+
 namespace oplus::displaypanelfeature {
 
 // Derives the ADFR minimum-fps floor legal for the currently active display mode,
@@ -25,5 +27,19 @@ namespace oplus::displaypanelfeature {
 constexpr int kFloorGateModeHz = 60;
 
 int ComputeAdfrFloor(const AdfrPayload& payload, int active_mode_hz);
+
+// The panel's declared mode set. Anything else - unset, stale, or malformed - is
+// "not yet known" and must never reach a sysfs write.
+bool IsKnownPanelMode(int mode_hz);
+
+// The daemon's whole decision, as a pure function of the observed mode and what was
+// last written: the floor to write now, or nothing.
+//
+// This exists as a seam so the decision is host-testable without a device. The
+// daemon around it is then only "wait for a property edge, ask this, write" - it
+// holds no policy of its own and, in particular, no timer: an unknown mode returns
+// nothing rather than being retried on a clock.
+std::optional<int> NextFloorWrite(const AdfrPayload& payload, int observed_mode_hz,
+                                  std::optional<int> last_written);
 
 }  // namespace oplus::displaypanelfeature

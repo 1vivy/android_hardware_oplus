@@ -88,5 +88,58 @@ TEST(AdfrFloorPolicyTest, NeverDescendsBelowTheModeRateWhenTheTableIsEmpty) {
     EXPECT_EQ(ComputeAdfrFloor(payload, kFloorGateModeHz), kFloorGateModeHz);
 }
 
+// NextFloorWrite is the daemon's ENTIRE decision. The daemon around it only waits
+// for a property edge and writes what this returns, so these cases are what stops a
+// stale or malformed property from reaching the panel, and what stops a repeated
+// property edge from rewriting a floor that has not changed.
+
+TEST(AdfrFloorPolicyTest, UnknownObservedModeProducesNoWriteAtAll) {
+    // Given: the property is unset (0) or carries a mode this panel never declares.
+    const auto payload = InfinitiPayload();
+
+    // When / Then: nothing is written. Returning a floor here would let an unset
+    // property at early boot drive the panel, which is exactly the failure the
+    // known-mode set exists to prevent.
+    EXPECT_FALSE(NextFloorWrite(payload, 0, std::nullopt).has_value());
+    EXPECT_FALSE(NextFloorWrite(payload, 77, std::nullopt).has_value());
+    EXPECT_FALSE(NextFloorWrite(payload, -1, std::nullopt).has_value());
+}
+
+TEST(AdfrFloorPolicyTest, UnchangedFloorProducesNoRepeatWrite) {
+    // Given: a mode whose floor has already been written.
+    const auto payload = InfinitiPayload();
+    const auto first = NextFloorWrite(payload, 120, std::nullopt);
+    ASSERT_TRUE(first.has_value());
+
+    // When / Then: the same observation again writes nothing. Property edges are
+    // global, so this daemon wakes for changes it does not own; re-writing the
+    // panel on every unrelated edge would make it a chattering writer.
+    EXPECT_FALSE(NextFloorWrite(payload, 120, first).has_value());
+}
+
+TEST(AdfrFloorPolicyTest, ChangedModeProducesExactlyTheComputedFloor) {
+    // Given: a floor already written for the gate mode.
+    const auto payload = InfinitiPayload();
+    const auto settled = NextFloorWrite(payload, kFloorGateModeHz, std::nullopt);
+    ASSERT_TRUE(settled.has_value());
+    EXPECT_EQ(*settled, ComputeAdfrFloor(payload, kFloorGateModeHz));
+
+    // When: AOSP moves up to a mode outside the adaptive tier.
+    const auto raised = NextFloorWrite(payload, 165, settled);
+
+    // Then: the daemon writes that mode's own rate, releasing the descent.
+    ASSERT_TRUE(raised.has_value());
+    EXPECT_EQ(*raised, 165);
+}
+
+TEST(AdfrFloorPolicyTest, KnownPanelModeSetIsExactlyTheDeclaredModes) {
+    for (const int mode : {60, 90, 120, 144, 165}) {
+        EXPECT_TRUE(IsKnownPanelMode(mode)) << "declared mode " << mode << " rejected";
+    }
+    for (const int mode : {0, -1, 30, 61, 119, 166, 240}) {
+        EXPECT_FALSE(IsKnownPanelMode(mode)) << "undeclared mode " << mode << " accepted";
+    }
+}
+
 }  // namespace
 }  // namespace oplus::displaypanelfeature
