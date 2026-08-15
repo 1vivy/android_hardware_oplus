@@ -7,7 +7,6 @@
 import pathlib
 import unittest
 
-
 HEALTH_DIR = pathlib.Path(__file__).resolve().parents[1]
 
 
@@ -17,6 +16,10 @@ class HealthConfigTest(unittest.TestCase):
         health_cpp = (HEALTH_DIR / "Health.cpp").read_text()
 
         expected_paths = {
+            "battery_state_of_health_path": (
+                "OPLUS_HEALTH_BATTERY_STATE_OF_HEALTH_PATH",
+                "batteryStateOfHealthPath",
+            ),
             "battery_cycle_count_path": (
                 "OPLUS_HEALTH_BATTERY_CYCLE_COUNT_PATH",
                 "batteryCycleCountPath",
@@ -28,6 +31,10 @@ class HealthConfigTest(unittest.TestCase):
             "battery_full_charge_design_capacity_uah_path": (
                 "OPLUS_HEALTH_BATTERY_FULL_CHARGE_DESIGN_CAPACITY_UAH_PATH",
                 "batteryFullChargeDesignCapacityUahPath",
+            ),
+            "battery_first_usage_date_path": (
+                "OPLUS_HEALTH_BATTERY_FIRST_USAGE_DATE_PATH",
+                "batteryFirstUsageDatePath",
             ),
         }
 
@@ -49,6 +56,29 @@ class HealthConfigTest(unittest.TestCase):
         self.assertIn("full_charge == design_capacity", health_cpp)
         self.assertIn("health_info->batteryFullChargeUah = 0", health_cpp)
 
+    def test_oplus_charging_control_reports_charge_hold_without_bypass(self):
+        android_bp = (HEALTH_DIR / "Android.bp").read_text()
+        charging_control = (HEALTH_DIR / "ChargingControl.cpp").read_text()
+
+        self.assertIn('name: "vendor.lineage.health-service.oplus"', android_bp)
+        self.assertIn('"vendor.lineage.health-service.default"', android_bp)
+        self.assertIn("ChargingControlSupportedMode::TOGGLE", charging_control)
+        self.assertNotIn("ChargingControlSupportedMode::BYPASS", charging_control)
+        self.assertIn(
+            '"/sys/class/oplus_chg/battery/mmi_charging_enable"',
+            charging_control,
+        )
+
+    def test_lineage_health_deployment_keeps_both_standard_instances(self):
+        service = (HEALTH_DIR / "LineageHealthService.cpp").read_text()
+        vintf = (HEALTH_DIR / "vendor.lineage.health-service.oplus.xml").read_text()
+
+        self.assertIn("SharedRefBase::make<ChargingControl>", service)
+        self.assertIn("SharedRefBase::make<FastCharge>", service)
+        self.assertIn('Service::descriptor) + "/default"', service)
+        self.assertIn("IChargingControl/default", vintf)
+        self.assertIn("IFastCharge/default", vintf)
+
 
 if __name__ == "__main__":
-    unittest.main()
+    _ = unittest.main()

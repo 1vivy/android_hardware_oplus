@@ -81,3 +81,27 @@ cc_binary {
         "charger",
     ],
 }
+
+cc_binary {
+    name: "vendor.lineage.health-service.oplus",
+    stem: "vendor.lineage.health-service.default",
+    vendor: true,
+    relative_install_path: "hw",
+    init_rc: ["vendor.lineage.health-service.oplus.rc"],
+    vintf_fragments: ["vendor.lineage.health-service.oplus.xml"],
+    overrides: ["vendor.lineage.health-service.default"],
+    srcs: [
+        "ChargingControl.cpp",
+        "FastCharge.cpp",
+        "LineageHealthService.cpp",
+    ],
+    shared_libs: [
+        "libbase",
+        "libbinder_ndk",
+        "vendor.lineage.health-V2-ndk",
+    ],
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
+}
