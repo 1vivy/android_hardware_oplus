@@ -5,6 +5,7 @@ cc_library_static {
     srcs: [
         "AdfrConfig.cpp",
         "AdfrFloorPolicy.cpp",
+        "ModeTable.cpp",
     ],
     export_include_dirs: ["."],
     shared_libs: [
@@ -24,6 +25,39 @@ cc_library_static {
         "Publisher.cpp",
     ],
     export_include_dirs: ["."],
+    shared_libs: [
+        "libbase",
+        "libcrypto",
+        "libtinyxml2",
+    ],
+    cflags: ["-Wall", "-Werror"],
+}
+
+// Admission and dispatch. Deliberately free of binder so the deny-by-default
+// contract is exercised by a host test rather than only on a device.
+cc_library_static {
+    name: "liboplus_displaypanelfeature_dispatch",
+    vendor_available: true,
+    host_supported: true,
+    srcs: ["Dispatcher.cpp"],
+    export_include_dirs: ["."],
+    static_libs: ["liboplus_displaypanelfeature_client"],
+    shared_libs: [
+        "libbase",
+        "libcrypto",
+        "libtinyxml2",
+    ],
+    cflags: ["-Wall", "-Werror"],
+}
+
+// The only module that touches panel hardware.
+cc_library_static {
+    name: "liboplus_displaypanelfeature_backend",
+    vendor: true,
+    srcs: ["IoctlPanelBackend.cpp"],
+    export_include_dirs: ["."],
+    header_libs: ["kernel_headers.oplus"],
+    static_libs: ["liboplus_displaypanelfeature_client"],
     shared_libs: [
         "libbase",
         "libcrypto",
@@ -124,12 +158,77 @@ cc_test_host {
 }
 
 cc_test_host {
+    name: "displaypanelfeature_modetable_test",
+    srcs: ["tests/ModeTableTest.cpp"],
+    static_libs: ["liboplus_displaypanelfeature_config"],
+    shared_libs: [
+        "libbase",
+        "libtinyxml2",
+    ],
+    data: ["tests/data/*"],
+    test_options: { unit_test: true },
+    cflags: ["-Wall", "-Werror"],
+}
+
+cc_test_host {
     name: "displaypanelfeature_floor_policy_test",
     srcs: ["tests/AdfrFloorPolicyTest.cpp"],
     static_libs: ["liboplus_displaypanelfeature_config"],
     shared_libs: [
         "libbase",
         "libtinyxml2",
+    ],
+    test_options: { unit_test: true },
+    cflags: ["-Wall", "-Werror"],
+}
+
+// The open default IDisplayPanelFeature server. It replaces the ODM
+// implementation rather than sitting beside it: exactly one default declaration
+// for this interface may exist in a build.
+cc_binary {
+    name: "vendor.oplus.hardware.displaypanelfeature-service.oplus",
+    vendor: true,
+    relative_install_path: "hw",
+    init_rc: ["vendor.oplus.hardware.displaypanelfeature-service.oplus.rc"],
+    vintf_fragments: ["vendor.oplus.hardware.displaypanelfeature-service.oplus.xml"],
+    srcs: [
+        "Server.cpp",
+        "service.cpp",
+    ],
+    static_libs: [
+        "liboplus_displaypanelfeature_backend",
+        "liboplus_displaypanelfeature_client",
+        "liboplus_displaypanelfeature_dispatch",
+    ],
+    shared_libs: [
+        "libbase",
+        "libbinder_ndk",
+        "libcrypto",
+        "libtinyxml2",
+        "vendor.oplus.hardware.displaypanelfeature-V1-ndk",
+    ],
+    cflags: ["-Wall", "-Werror"],
+}
+
+cc_test_host {
+    name: "displaypanelfeature_dispatch_test",
+    srcs: ["tests/DispatcherTest.cpp"],
+    static_libs: [
+        "liboplus_displaypanelfeature_client",
+        "liboplus_displaypanelfeature_dispatch",
+    ],
+    shared_libs: [
+        "libbase",
+        "libcrypto",
+        "libtinyxml2",
+    ],
+    // The SHIPPED generated map, so the admission tests are evidence about the
+    // registry the device installs rather than about a fixture; the revision
+    // fixture is the one deliberate exception, since a schema revision cannot
+    // be represented by the current map.
+    data: [
+        "configs/displaypanelfeature_infiniti.xml",
+        "tests/data/registry-revision-b.xml",
     ],
     test_options: { unit_test: true },
     cflags: ["-Wall", "-Werror"],
