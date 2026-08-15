@@ -36,7 +36,7 @@
 /vendor/bin/displaypanelfeature-publisher                           u:object_r:vendor_displaypanelfeature_publisher_exec:s0
 /vendor/bin/adfr-floor-daemon                                       u:object_r:vendor_adfr_floor_daemon_exec:s0
 /vendor/bin/hw/vendor\.lineage\.livedisplay-service\.oplus          u:object_r:hal_lineage_livedisplay_qti_exec:s0
-/odm/bin/hw/vendor\.oplus\.hardware\.displaypanelfeature-service    u:object_r:hal_oplus_displaypanelfeature_aidl_exec:s0
+/vendor/bin/hw/vendor\.oplus\.hardware\.displaypanelfeature-service\.oplus  u:object_r:hal_oplus_displaypanelfeature_aidl_exec:s0
 /dev/oplus_display                                                  u:object_r:graphics_device:s0
 
 # Display (Pixelworks)

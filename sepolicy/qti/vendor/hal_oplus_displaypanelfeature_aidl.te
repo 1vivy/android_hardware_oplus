@@ -16,5 +16,10 @@ add_service(hal_oplus_displaypanelfeature_aidl, dpa_service)
 
 allow hal_oplus_displaypanelfeature_aidl graphics_device:chr_file rw_file_perms;
 
+# getDisplayPanelInfo answers from the panel's own sysfs nodes, so the server
+# reads them directly instead of taking panel identity from a property another
+# domain could have written.
+r_dir_file(hal_oplus_displaypanelfeature_aidl, vendor_sysfs_graphics)
+
 get_prop(hal_oplus_displaypanelfeature_aidl, boot_status_prop)
 get_prop(hal_oplus_displaypanelfeature_aidl, vendor_display_prop)
