@@ -34,54 +34,73 @@ class IfaaService : Service() {
 
     override fun onBind(intent: Intent) =
         object : IfaaManagerService.Stub() {
+            private val _deviceModel by lazy {
+                IfaaProjectIdentity.resolve(
+                    SystemProperties.get(PROJECT_PROP, ""),
+                    SystemProperties.get(IFAA_MODEL_PROP, ""),
+                )
+            }
+
             private val _supportBIOTypes by lazy {
-                when (SystemProperties.get(FP_TYPE_PROP, "")) {
-                    "back",
-                    "side",
-                    "front" -> AUTH_TYPE_FINGERPRINT
-                    "ultrasonic",
-                    "optical" -> AUTH_TYPE_OPTICAL_FINGERPRINT
-                    else -> AUTH_TYPE_NOT_SUPPORT
+                if (_deviceModel == null) {
+                    AUTH_TYPE_NOT_SUPPORT
+                } else {
+                    when (SystemProperties.get(FP_TYPE_PROP, "")) {
+                        "back",
+                        "side",
+                        "front" -> AUTH_TYPE_FINGERPRINT
+                        "ultrasonic",
+                        "optical" -> AUTH_TYPE_OPTICAL_FINGERPRINT
+                        else -> AUTH_TYPE_NOT_SUPPORT
+                    }
                 }
             }
 
             override fun getSupportBIOTypes() = _supportBIOTypes
 
             override fun startBIOManager(authType: Int) =
-                when (authType) {
-                    AUTH_TYPE_FINGERPRINT -> {
-                        applicationContext.startActivity(
-                            Intent(Settings.ACTION_SECURITY_SETTINGS).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                        )
+                if (_deviceModel == null) {
+                    COMMAND_FAIL
+                } else {
+                    when (authType) {
+                        AUTH_TYPE_FINGERPRINT -> {
+                            applicationContext.startActivity(
+                                Intent(Settings.ACTION_SECURITY_SETTINGS).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                            )
 
-                        COMMAND_OK
+                            COMMAND_OK
+                        }
+
+                        else -> COMMAND_FAIL
                     }
-
-                    else -> COMMAND_FAIL
                 }
 
-            private val _deviceModel by lazy {
-                SystemProperties.get(IFAA_MODEL_PROP, "OPLUS-Default")
-            }
-
-            override fun getDeviceModel() = _deviceModel
+            override fun getDeviceModel() = _deviceModel ?: ""
 
             override fun processCmd(param: ByteArray) =
-                try {
-                    getFpPayService()?.ifaa_invoke_command(param)
-                } catch (e: Exception) {
-                    Log.e(LOG_TAG, "processCmdImpl: ifaa_invoke_command aidl failed", e)
+                if (_deviceModel == null) {
                     null
+                } else {
+                    try {
+                        getFpPayService()?.ifaa_invoke_command(param)
+                    } catch (e: Exception) {
+                        Log.e(LOG_TAG, "processCmdImpl: ifaa_invoke_command aidl failed", e)
+                        null
+                    }
                 }
 
             override fun getVersion() = 4
 
             override fun getExtInfo(authType: Int, keyExtInfo: String) =
-                when (keyExtInfo) {
-                    KEY_GET_SENSOR_LOCATION -> initExtString()
-                    else -> ""
+                if (_deviceModel == null) {
+                    ""
+                } else {
+                    when (keyExtInfo) {
+                        KEY_GET_SENSOR_LOCATION -> initExtString()
+                        else -> ""
+                    }
                 }
 
             override fun setExtInfo(authType: Int, keyExtInfo: String, valExtInfo: String) {
@@ -89,6 +108,9 @@ class IfaaService : Service() {
             }
 
             override fun getEnabled(bioType: Int): Int {
+                if (_deviceModel == null) {
+                    return AUTH_TYPE_NOT_SUPPORT
+                }
                 if (!keyguardManager.isKeyguardSecure) {
                     Log.e(LOG_TAG, "No secure keyguard set.")
                     return BIOMETRIC_NOUSE_NOSET_KEYGUARD
@@ -115,18 +137,22 @@ class IfaaService : Service() {
             }
 
             override fun getIDList(bioType: Int): IntArray? =
-                when (bioType) {
-                    AUTH_TYPE_FINGERPRINT -> {
-                        val enrolledFingerprintIds =
-                            fingerprintManager.enrolledFingerprints
-                                ?.map { it.biometricId }
-                                ?.toIntArray()
+                if (_deviceModel == null) {
+                    null
+                } else {
+                    when (bioType) {
+                        AUTH_TYPE_FINGERPRINT -> {
+                            val enrolledFingerprintIds =
+                                fingerprintManager.enrolledFingerprints
+                                    ?.map { it.biometricId }
+                                    ?.toIntArray()
 
-                        Log.w(LOG_TAG, "getIDList: ${enrolledFingerprintIds}!")
-                        enrolledFingerprintIds
+                            Log.w(LOG_TAG, "getIDList: ${enrolledFingerprintIds}!")
+                            enrolledFingerprintIds
+                        }
+
+                        else -> null
                     }
-
-                    else -> null
                 }
         }
 
@@ -211,7 +237,7 @@ class IfaaService : Service() {
         private const val FP_ICON_SIZE_PROP = "persist.vendor.fingerprint.optical.iconsize"
         private const val FP_ICON_LOCATION_PROP = "persist.vendor.fingerprint.optical.iconlocation"
 
-        // NOTE: Populate ifaaModel from /my_stock/etc/sys_alipay_model_list.json
+        private const val PROJECT_PROP = "ro.boot.prjname"
         private const val IFAA_MODEL_PROP = "sys.oplus.ifaa.model"
 
         private const val KEY_GET_SENSOR_LOCATION = "org.ifaa.ext.key.GET_SENSOR_LOCATION"

@@ -8,6 +8,7 @@ android_app {
     name: "IFAAService",
     srcs: [
         "src/**/*.kt",
+        "src/**/*.java",
         "src/**/*.aidl",
     ],
     aidl: {
@@ -21,4 +22,14 @@ android_app {
     certificate: "platform",
     platform_apis: true,
     system_ext_specific: true,
+}
+
+java_test_host {
+    name: "IFAAServiceIdentityTest",
+    srcs: [
+        "src/**/IfaaProjectIdentity.java",
+        "tests/src/**/*.java",
+    ],
+    static_libs: ["junit"],
+    test_suites: ["general-tests"],
 }
