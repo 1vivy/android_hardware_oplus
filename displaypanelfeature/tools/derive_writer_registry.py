@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Promote direct panel writers using IDs derived from the stock DPF dispatch."""
+"""Promote typed panel features using IDs derived from the stock DPF dispatch."""
 
 from __future__ import annotations
 
@@ -28,6 +28,7 @@ REQUIRED_WRITER_COLUMNS = {
     "producer",
     "min",
     "max",
+    "values",
 }
 TEMPLATE_NOTICE = (
     "<!-- Registry template: writer IDs are derived from the stock dispatch map; "
@@ -52,6 +53,7 @@ class WriterSpec:
     producer: str
     minimum: str
     maximum: str
+    allowed_values: str
 
 
 def _rows(path: Path) -> tuple[list[str], list[dict[str, str]]]:
@@ -108,6 +110,19 @@ def _writer_specs(path: Path) -> list[WriterSpec]:
             raise DerivationError(f"{path}: invalid direction for {name}")
         if not row["set_handler"] and not row["get_handler"]:
             raise DerivationError(f"{path}: {name} has no evidence handler")
+        try:
+            minimum = int(row["min"])
+            maximum = int(row["max"])
+            allowed_values = [int(value) for value in row["values"].split(",")]
+        except ValueError as error:
+            raise DerivationError(f"{path}: invalid value domain for {name}") from error
+        if (
+            minimum > maximum
+            or not allowed_values
+            or len(allowed_values) != len(set(allowed_values))
+            or any(value < minimum or value > maximum for value in allowed_values)
+        ):
+            raise DerivationError(f"{path}: invalid value domain for {name}")
         specs.append(
             WriterSpec(
                 name=name,
@@ -117,6 +132,7 @@ def _writer_specs(path: Path) -> list[WriterSpec]:
                 producer=row["producer"],
                 minimum=row["min"],
                 maximum=row["max"],
+                allowed_values=row["values"],
             )
         )
     return specs
@@ -191,6 +207,7 @@ def derive_registry(template: Path, dispatch: Path, writers: Path, output: Path)
         attributes["status"] = "active"
         attributes["min"] = spec.minimum
         attributes["max"] = spec.maximum
+        attributes["values"] = spec.allowed_values
         rendered.append(_feature_line(match.group("indent"), attributes))
         promoted.add(feature_id)
     if promoted != set(promotions):

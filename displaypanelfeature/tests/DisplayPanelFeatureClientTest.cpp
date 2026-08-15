@@ -20,6 +20,10 @@ std::string TestData(const char* name) {
     return android::base::GetExecutableDirectory() + "/tests/data/" + name;
 }
 
+std::string ProductionConfig() {
+    return android::base::GetExecutableDirectory() + "/configs/displaypanelfeature_infiniti.xml";
+}
+
 class FakeTransport final : public PanelFeatureTransport {
   public:
     bool Get(int32_t packedId, std::vector<int32_t>* values, std::string*) override {
@@ -71,6 +75,22 @@ TEST(DisplayPanelFeatureClientTest, DeniesReservedUnknownWrongDirectionShapeAndR
     EXPECT_FALSE(client.SetScalar(DisplayRole::kPrimary, FeatureId::kSeed, 5, &error));
     EXPECT_EQ(error, "feature 4 payload is outside the declared range");
     EXPECT_EQ(transport->lastPackedId, -1);
+}
+
+TEST(DisplayPanelFeatureClientTest, RejectsUnobservedLongruiAodStateBeforeTransport) {
+    std::string error;
+    auto registry = FeatureRegistry::Load(ProductionConfig(), &error);
+    ASSERT_NE(registry, nullptr) << error;
+    auto transport = std::make_shared<FakeTransport>();
+    DisplayPanelFeatureClient client(registry, transport);
+    constexpr auto kLongruiAod = static_cast<FeatureId>(217);
+
+    EXPECT_FALSE(client.SetScalar(DisplayRole::kPrimary, kLongruiAod, 5, &error));
+    EXPECT_EQ(error, "feature 217 payload is not an allowed value");
+    EXPECT_EQ(transport->lastPackedId, -1);
+
+    EXPECT_TRUE(client.SetScalar(DisplayRole::kPrimary, kLongruiAod, 4, &error)) << error;
+    EXPECT_EQ(transport->lastPackedId, 217);
 }
 
 // A transport that echoes writes back on read, i.e. a panel that HONOURS the

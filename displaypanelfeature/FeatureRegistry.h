@@ -36,9 +36,11 @@ struct FeatureEntry {
     std::vector<DisplayRole> displays;
     int32_t minimum = INT32_MIN;
     int32_t maximum = INT32_MAX;
+    std::vector<int32_t> allowedValues;
 
     size_t PayloadCount() const;
     bool Allows(DisplayRole role) const;
+    bool AllowsValue(int32_t value) const;
 };
 
 class FeatureRegistry {

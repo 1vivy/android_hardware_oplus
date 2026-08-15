@@ -49,6 +49,10 @@ bool DisplayPanelFeatureClient::Prepare(DisplayRole display, FeatureId feature, 
         *error = "feature " + std::to_string(id) + " payload is outside the declared range";
         return false;
     }
+    if (set && entry->shape == PayloadShape::kScalar && !entry->AllowsValue(values[0])) {
+        *error = "feature " + std::to_string(id) + " payload is not an allowed value";
+        return false;
+    }
     const auto numericDisplay = registry_->DisplayId(display);
     if (!numericDisplay || !entry->Allows(display)) {
         *error = "feature " + std::to_string(id) + " is not allowed on the requested display";

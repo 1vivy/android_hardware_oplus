@@ -61,14 +61,31 @@ def test_production_derivation_reproduces_the_shipped_registry(tmp_path: Path) -
             row["status"],
             row["min"],
             row["max"],
+            row["values"],
         )
         for name, row in rows.items()
-        if name in {"DimlayerHbm", "FpPress", "UltraLowPowerAod", "LowPwmAod"}
+        if name
+        in {
+            "DimlayerHbm",
+            "FpPress",
+            "UltraLowPowerAod",
+            "LowPwmAod",
+            "LongruiAodState",
+        }
     } == {
-        "DimlayerHbm": ("22", "both", "typed-client", "active", "0", "1"),
-        "FpPress": ("28", "set", "typed-client", "active", "0", "1"),
-        "UltraLowPowerAod": ("195", "both", "typed-client", "active", "0", "1"),
-        "LowPwmAod": ("263", "both", "typed-client", "active", "0", "1"),
+        "DimlayerHbm": ("22", "both", "typed-client", "active", "0", "1", "0,1"),
+        "FpPress": ("28", "set", "typed-client", "active", "0", "1", "0,1"),
+        "UltraLowPowerAod": ("195", "both", "typed-client", "active", "0", "1", "0,1"),
+        "LowPwmAod": ("263", "both", "typed-client", "active", "0", "1", "0,1"),
+        "LongruiAodState": (
+            "217",
+            "both",
+            "typed-client",
+            "active",
+            "0",
+            "11",
+            "0,2,3,4,10,11",
+        ),
     }
 
 
@@ -83,6 +100,7 @@ def test_writer_spec_names_handlers_but_contains_no_route_ids() -> None:
         "FpPress",
         "UltraLowPowerAod",
         "LowPwmAod",
+        "LongruiAodState",
     }
     assert all(not any(character.isdigit() for character in row["name"]) for row in rows)
 

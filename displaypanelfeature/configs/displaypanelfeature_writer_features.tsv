@@ -1,5 +1,6 @@
-name	set_handler	get_handler	direction	producer	min	max
-DimlayerHbm	SetDisplayPanelDimlayHBM	GetDisplayPanelDimlayHBM	both	typed-client	0	1
-FpPress	SetDisplayPanelFPPress		set	typed-client	0	1
-UltraLowPowerAod	SetDisplayUltraLowPowerAOD	GetDisplayUltraLowPowerAOD	both	typed-client	0	1
-LowPwmAod	SetDisplayLowPwmAOD	GetDisplayLowPwmAOD	both	typed-client	0	1
+name	set_handler	get_handler	direction	producer	min	max	values
+DimlayerHbm	SetDisplayPanelDimlayHBM	GetDisplayPanelDimlayHBM	both	typed-client	0	1	0,1
+FpPress	SetDisplayPanelFPPress		set	typed-client	0	1	0,1
+UltraLowPowerAod	SetDisplayUltraLowPowerAOD	GetDisplayUltraLowPowerAOD	both	typed-client	0	1	0,1
+LowPwmAod	SetDisplayLowPwmAOD	GetDisplayLowPwmAOD	both	typed-client	0	1	0,1
+LongruiAodState	SetDisplayLongruiAOD	GetDisplayLongruiAOD	both	typed-client	0	11	0,2,3,4,10,11

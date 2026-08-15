@@ -60,6 +60,26 @@ std::optional<std::vector<DisplayRole>> ParseRoles(const char* text) {
     return roles;
 }
 
+std::optional<std::vector<int32_t>> ParseAllowedValues(const char* text) {
+    std::vector<int32_t> values;
+    if (text == nullptr) return values;
+    std::string_view remaining(text);
+    while (!remaining.empty()) {
+        const size_t comma = remaining.find(',');
+        const std::string_view token = remaining.substr(0, comma);
+        int32_t value = 0;
+        const auto [end, error] = std::from_chars(token.data(), token.data() + token.size(), value);
+        if (token.empty() || error != std::errc() || end != token.data() + token.size() ||
+            std::find(values.begin(), values.end(), value) != values.end()) {
+            return std::nullopt;
+        }
+        values.push_back(value);
+        if (comma == std::string_view::npos) break;
+        remaining.remove_prefix(comma + 1);
+    }
+    return values;
+}
+
 bool IsSha256(const std::string& value) {
     return value.size() == 64 && std::all_of(value.begin(), value.end(), [](unsigned char c) {
                return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
@@ -98,6 +118,11 @@ size_t FeatureEntry::PayloadCount() const {
 
 bool FeatureEntry::Allows(DisplayRole role) const {
     return std::find(displays.begin(), displays.end(), role) != displays.end();
+}
+
+bool FeatureEntry::AllowsValue(int32_t value) const {
+    return allowedValues.empty() ||
+           std::find(allowedValues.begin(), allowedValues.end(), value) != allowedValues.end();
 }
 
 std::optional<std::vector<FeatureEntry>> LoadFeatureRegistry(const std::string& path,
@@ -163,10 +188,17 @@ std::optional<std::vector<FeatureEntry>> LoadFeatureRegistry(const std::string& 
         entry.displays = *displays;
         node->QueryIntAttribute("min", &entry.minimum);
         node->QueryIntAttribute("max", &entry.maximum);
-        if (entry.minimum > entry.maximum) {
-            *error = "invalid feature value range";
+        const auto allowedValues = ParseAllowedValues(node->Attribute("values"));
+        if (!allowedValues || entry.minimum > entry.maximum ||
+            std::any_of(allowedValues->begin(), allowedValues->end(),
+                        [&entry](int32_t value) {
+                            return value < entry.minimum || value > entry.maximum;
+                        }) ||
+            (!allowedValues->empty() && entry.shape != PayloadShape::kScalar)) {
+            *error = "invalid feature value domain";
             return std::nullopt;
         }
+        entry.allowedValues = *allowedValues;
         entries.push_back(std::move(entry));
     }
     if (entries.empty()) {
