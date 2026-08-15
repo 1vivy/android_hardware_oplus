@@ -89,4 +89,31 @@ bool DisplayPanelFeatureClient::SetScalar(DisplayRole display, FeatureId feature
     return Set(display, feature, {value}, error);
 }
 
+bool DisplayPanelFeatureClient::SetScalarVerified(DisplayRole display, FeatureId feature,
+                                                  int32_t value, std::string* error) const {
+    const int32_t id = static_cast<int32_t>(feature);
+    const FeatureEntry* entry = registry_->Find(id);
+    // Refuse BEFORE writing when the row cannot be read back. Writing first and
+    // then admitting the result is unknowable would leave the panel changed by a
+    // call that reports failure, which is worse than not writing at all.
+    if (entry == nullptr || entry->direction != Direction::kBoth) {
+        *error = "feature " + std::to_string(id) +
+                 " cannot be read back, so a write to it cannot be verified";
+        return false;
+    }
+    if (!SetScalar(display, feature, value, error)) return false;
+
+    int32_t observed = 0;
+    if (!GetScalar(display, feature, &observed, error)) {
+        *error = "feature " + std::to_string(id) + " write could not be read back: " + *error;
+        return false;
+    }
+    if (observed != value) {
+        *error = "feature " + std::to_string(id) + " did not take: wrote " +
+                 std::to_string(value) + ", panel reports " + std::to_string(observed);
+        return false;
+    }
+    return true;
+}
+
 }  // namespace oplus::displaypanelfeature

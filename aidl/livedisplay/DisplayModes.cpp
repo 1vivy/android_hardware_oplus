@@ -65,7 +65,12 @@ ndk::ScopedAStatus DisplayModes::setDisplayMode(int32_t modeID, bool makeDefault
     if (iter == kModeMap.end()) {
         return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
     }
-    if (!panel::Set(panel::FeatureId::kSeed, static_cast<int32_t>(iter->second.seedMode))) {
+    // Verified, not fire-and-forget: DEF-COL-01 was a colour selection whose
+    // seed write was accepted while the panel never moved, so the UI kept
+    // reporting a profile the display was not showing. Fail the selection
+    // instead of caching a mode the panel did not confirm.
+    if (!panel::SetVerified(panel::FeatureId::kSeed,
+                            static_cast<int32_t>(iter->second.seedMode))) {
         return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
     mController->setActiveDisplayMode(iter->second.displayModeId);

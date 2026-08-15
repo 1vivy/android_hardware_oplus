@@ -50,6 +50,16 @@ class DisplayPanelFeatureClient {
              std::string* error) const;
     bool SetScalar(DisplayRole display, FeatureId feature, int32_t value, std::string* error) const;
 
+    // Writes a scalar and PROVES the panel took it by reading the value back.
+    //
+    // DEF-COL-01 is exactly the failure this exists for: the complete colour
+    // path reached the panel feature, the call returned success, and the panel
+    // never changed. A write that is only "not refused" is therefore not
+    // evidence of a panel change. A row that cannot be read back cannot be
+    // verified at all, and this says so instead of reporting a false pass.
+    bool SetScalarVerified(DisplayRole display, FeatureId feature, int32_t value,
+                           std::string* error) const;
+
   private:
     bool Prepare(DisplayRole display, FeatureId feature, bool set,
                  const std::vector<int32_t>& values, int32_t* packedId, std::string* error) const;
