@@ -26,6 +26,7 @@ cc_library_static {
     vendor_available: true,
     host_supported: true,
     srcs: [
+        "AdfrControlOwner.cpp",
         "DisplayPanelFeatureClient.cpp",
         "FeatureRegistry.cpp",
         "PanelWriterClient.cpp",
@@ -190,6 +191,19 @@ cc_test_host {
         "libtinyxml2",
     ],
     data: ["tests/data/*"],
+    test_options: { unit_test: true },
+    cflags: ["-Wall", "-Werror"],
+}
+
+cc_test_host {
+    name: "displaypanelfeature_adfr_control_owner_test",
+    srcs: ["tests/AdfrControlOwnerTest.cpp"],
+    static_libs: ["liboplus_displaypanelfeature_client"],
+    shared_libs: [
+        "libbase",
+        "libcrypto",
+        "libtinyxml2",
+    ],
     test_options: { unit_test: true },
     cflags: ["-Wall", "-Werror"],
 }
