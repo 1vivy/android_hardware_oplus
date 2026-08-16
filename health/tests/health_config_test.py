@@ -72,6 +72,14 @@ class HealthConfigTest(unittest.TestCase):
         service_rc = (
             HEALTH_DIR / "vendor.lineage.health-service.oplus.rc"
         ).read_text()
+        file_contexts = (
+            HEALTH_DIR.parent / "sepolicy/qti/vendor/file_contexts"
+        ).read_text()
+        contexts = {
+            row[0]: row[1]
+            for line in file_contexts.splitlines()
+            if len(row := line.split()) == 2
+        }
 
         self.assertIn(
             'overrides: ["vendor.lineage.health-service.default"]',
@@ -88,6 +96,12 @@ class HealthConfigTest(unittest.TestCase):
         self.assertNotIn(
             "/vendor/bin/hw/vendor.lineage.health-service.default",
             service_rc,
+        )
+        self.assertEqual(
+            contexts.get(
+                "/vendor/bin/hw/vendor\\.lineage\\.health-service\\.oplus"
+            ),
+            "u:object_r:hal_lineage_health_default_exec:s0",
         )
 
     def test_lineage_health_deployment_keeps_both_standard_instances(self):

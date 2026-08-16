@@ -77,6 +77,7 @@
 
 # Health
 /vendor/bin/hw/android\.hardware\.health-service\.oplus    u:object_r:hal_health_default_exec:s0
+/vendor/bin/hw/vendor\.lineage\.health-service\.oplus      u:object_r:hal_lineage_health_default_exec:s0
 
 # Init
 /(odm|vendor/odm)/bin/init\.oplus\.sh          u:object_r:vendor_qti_init_shell_exec:s0
