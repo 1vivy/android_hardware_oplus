@@ -6,6 +6,7 @@
 #define LOG_TAG "displaypanelfeature-publisher"
 
 #include "AdfrConfig.h"
+#include "AdfrControlOwner.h"
 #include "AidlPanelFeatureTransport.h"
 #include "DisplayPanelFeatureClient.h"
 #include "FeatureRegistry.h"
@@ -27,7 +28,7 @@ namespace {
 constexpr auto kRegistryPath = "/vendor/etc/display/displaypanelfeature_publisher.xml";
 constexpr auto kAdfrConfigPath = "/vendor/etc/display/multimedia_display_adfr2minfps_config.xml";
 
-bool PublishAdfr(const DisplayPanelFeatureClient& client) {
+bool PublishAdfr(const DisplayPanelFeatureClient& client, AdfrControlOwner* control) {
     std::string error;
     int32_t support = 0;
     if (!client.GetScalar(DisplayRole::kPrimary, FeatureId::kAdfrSupport, &support, &error) ||
@@ -42,7 +43,7 @@ bool PublishAdfr(const DisplayPanelFeatureClient& client) {
     }
     if (!client.Set(DisplayRole::kPrimary, FeatureId::kAdfrConfig,
                     {payload->begin(), payload->end()}, &error) ||
-        !client.Set(DisplayRole::kPrimary, FeatureId::kAdfrControl, {0, (*payload)[2]}, &error)) {
+        !control->Apply({0, (*payload)[2]}, &error)) {
         LOG(ERROR) << "ADFR publish failed: " << error;
         return false;
     }
@@ -90,12 +91,24 @@ int main() {
     // binary is no longer installed and hashing it at startup would refuse a
     // correct build. Provenance is checked where the map is generated.
     const DisplayPanelFeatureClient client(registry, CreateAidlPanelFeatureTransport());
-    if (!PublishAdfr(client)) return EXIT_FAILURE;
+    // The transport rebinds after the server dies, which restores the channel but
+    // not the row it was carrying. This owner keeps the desired ADFR control value
+    // so the next event puts it back; without it a server restart silently left
+    // the panel on the fresh server's cadence.
+    AdfrControlOwner adfr_control([&client](const std::vector<int32_t>& values,
+                                            std::string* write_error) {
+        return client.Set(DisplayRole::kPrimary, FeatureId::kAdfrControl, values, write_error);
+    });
+    if (!PublishAdfr(client, &adfr_control)) return EXIT_FAILURE;
 
     Publisher publisher(registry, client);
     PublishCurrentEvents(*registry, &publisher);
     uint32_t serial = 0;
     while (__system_property_wait(nullptr, serial, &serial, nullptr)) {
+        std::string reapply_error;
+        if (!adfr_control.Reapply(&reapply_error)) {
+            LOG(WARNING) << "ADFR control reapply deferred: " << reapply_error;
+        }
         PublishCurrentEvents(*registry, &publisher);
     }
     LOG(ERROR) << "property event subscription failed";
