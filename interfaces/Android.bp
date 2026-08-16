@@ -389,7 +389,6 @@ aidl_interface {
 
 aidl_interface {
     name: "vendor.oplus.hardware.aodpanelstate",
-    system_ext_specific: true,
     local_include_dir: "aidl",
     srcs: ["aidl/vendor/oplus/hardware/aodpanelstate/*.aidl"],
     unstable: true,
