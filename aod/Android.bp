@@ -86,13 +86,45 @@ cc_binary {
     ],
     shared_libs: [
         "libbase",
+        "libbinder",
         "libbinder_ndk",
         "libcrypto",
         "liblog",
         "libtinyxml2",
+        "libutils",
         "vendor.oplus.hardware.aodpanelstate-ndk",
         "vendor.oplus.hardware.displaypanelfeature-V1-ndk",
     ],
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
+}
+
+cc_test {
+    name: "oplus_aod_panel_state_service_test",
+    system_ext_specific: true,
+    srcs: [
+        "AodPanelStateService.cpp",
+        "tests/AodPanelStateServiceTest.cpp",
+    ],
+    static_libs: [
+        "liboplus_aod_panel_policy",
+        "liboplus_displaypanelfeature_aidl_transport",
+        "liboplus_displaypanelfeature_client",
+    ],
+    shared_libs: [
+        "libbase",
+        "libbinder",
+        "libbinder_ndk",
+        "libcrypto",
+        "liblog",
+        "libtinyxml2",
+        "libutils",
+        "vendor.oplus.hardware.aodpanelstate-ndk",
+        "vendor.oplus.hardware.displaypanelfeature-V1-ndk",
+    ],
+    test_suites: ["device-tests"],
     cflags: [
         "-Wall",
         "-Werror",

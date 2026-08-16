@@ -7,7 +7,7 @@ package vendor.oplus.hardware.aodpanelstate;
 
 import vendor.oplus.hardware.aodpanelstate.AodPanelEdge;
 
-@EnforcePermission("android.permission.DEVICE_POWER")
+@PermissionManuallyEnforced
 interface IAodPanelStateService {
     boolean send(long generation, AodPanelEdge edge);
 }
