@@ -84,7 +84,6 @@ cc_binary {
 
 cc_binary {
     name: "vendor.lineage.health-service.oplus",
-    stem: "vendor.lineage.health-service.default",
     vendor: true,
     relative_install_path: "hw",
     init_rc: ["vendor.lineage.health-service.oplus.rc"],

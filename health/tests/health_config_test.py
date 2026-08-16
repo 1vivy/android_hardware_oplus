@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # SPDX-FileCopyrightText: 2026 The LineageOS Project
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -67,6 +65,29 @@ class HealthConfigTest(unittest.TestCase):
         self.assertIn(
             '"/sys/class/oplus_chg/battery/mmi_charging_enable"',
             charging_control,
+        )
+
+    def test_oplus_service_uses_unique_binary_and_overrides_default(self):
+        android_bp = (HEALTH_DIR / "Android.bp").read_text()
+        service_rc = (
+            HEALTH_DIR / "vendor.lineage.health-service.oplus.rc"
+        ).read_text()
+
+        self.assertIn(
+            'overrides: ["vendor.lineage.health-service.default"]',
+            android_bp,
+        )
+        self.assertNotIn(
+            'stem: "vendor.lineage.health-service.default"',
+            android_bp,
+        )
+        self.assertIn(
+            "/vendor/bin/hw/vendor.lineage.health-service.oplus",
+            service_rc,
+        )
+        self.assertNotIn(
+            "/vendor/bin/hw/vendor.lineage.health-service.default",
+            service_rc,
         )
 
     def test_lineage_health_deployment_keeps_both_standard_instances(self):
