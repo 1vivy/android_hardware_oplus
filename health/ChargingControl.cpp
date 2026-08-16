@@ -14,7 +14,6 @@
 
 #include <cstdio>
 #include <string>
-#include <string_view>
 
 namespace aidl::vendor::lineage::health {
 namespace {
@@ -22,8 +21,8 @@ namespace {
 // This measured node gates battery charging. It implements a charge hold; it
 // does not prove that external power electrically bypasses the battery.
 constexpr const char* kChargingEnabledPath = "/sys/class/oplus_chg/battery/mmi_charging_enable";
-constexpr std::string_view kChargingEnabled = "1";
-constexpr std::string_view kChargingDisabled = "0";
+constexpr char kChargingEnabled[] = "1";
+constexpr char kChargingDisabled[] = "0";
 
 ndk::ScopedAStatus Unsupported() {
     return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
@@ -60,7 +59,7 @@ ndk::ScopedAStatus ChargingControl::setChargingEnabled(bool enabled) {
         return ndk::ScopedAStatus::ok();
     }
 
-    const auto value = enabled ? kChargingEnabled : kChargingDisabled;
+    const std::string value = enabled ? kChargingEnabled : kChargingDisabled;
     if (!android::base::WriteStringToFile(value, kChargingEnabledPath, true)) {
         PLOG(ERROR) << "Failed to write charge-hold state";
         return Unsupported();
