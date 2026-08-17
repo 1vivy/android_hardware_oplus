@@ -12,5 +12,8 @@ system_public_prop(system_oplus_radio_prop)
 # Touch
 system_public_prop(system_oplus_touch_prop)
 
+# Vibrator
+system_public_prop(system_oplus_vibrator_prop)
+
 # Version
 system_vendor_config_prop(system_oplus_project_prop)
