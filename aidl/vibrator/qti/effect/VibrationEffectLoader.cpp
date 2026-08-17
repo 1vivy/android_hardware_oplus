@@ -11,6 +11,8 @@
 #include <android-base/logging.h>
 #include <android-base/properties.h>
 
+#include <sys/system_properties.h>
+
 #include <algorithm>
 #include <fstream>
 
@@ -84,20 +86,43 @@ VibrationEffectLoader::VibrationEffectLoader() : active_style_(kDefaultStyle) {
         return;
     }
     loadStyles(std::move(node));
+    refreshActiveStyle();
+    LOG(INFO) << "Effect styles loaded=" << styles_.size() << " active=" << active_style_;
+}
+
+void VibrationEffectLoader::refreshActiveStyle() {
+    if (styles_.empty()) {
+        return;
+    }
+    if (style_prop_ == nullptr) {
+        // The property may legitimately not exist yet; retry on the next call
+        // rather than caching "absent" forever.
+        style_prop_ = __system_property_find(kStyleProperty);
+        if (style_prop_ == nullptr) {
+            return;
+        }
+    }
+    const uint32_t serial = __system_property_serial(style_prop_);
+    if (style_resolved_ && serial == style_serial_) {
+        return;
+    }
+    style_serial_ = serial;
+    style_resolved_ = true;
 
     // Resolve the selection only against tiers this device actually shipped. A
     // request for an absent tier keeps the default rather than leaving the
     // device with no effects at all.
     const auto requested = requestedStyle();
-    if (requested != active_style_) {
-        if (styles_.count(requested) != 0) {
-            active_style_ = requested;
-        } else {
-            LOG(WARNING) << "Requested effect style '" << requested
-                         << "' is not shipped by this device; keeping " << active_style_;
-        }
+    const std::string next = styles_.count(requested) != 0 ? requested : kDefaultStyle;
+    if (next == active_style_) {
+        return;
     }
-    LOG(INFO) << "Effect styles loaded=" << styles_.size() << " active=" << active_style_;
+    if (requested != next) {
+        LOG(WARNING) << "Requested effect style '" << requested
+                     << "' is not shipped by this device; using " << next;
+    }
+    LOG(INFO) << "Effect style changed " << active_style_ << " -> " << next;
+    active_style_ = next;
 }
 
 VibrationEffectLoader::~VibrationEffectLoader() {
@@ -112,6 +137,12 @@ std::string VibrationEffectLoader::requestedStyle() {
 }
 
 effect_stream* VibrationEffectLoader::getEffectStream(uint32_t effect_id) {
+    // perform() dispatches from a worker thread, so selection state is shared.
+    // The maps themselves are immutable after construction and their nodes are
+    // stable, so the returned pointer stays valid once the lock is released.
+    std::lock_guard<std::mutex> lock(mutex_);
+    refreshActiveStyle();
+
     auto style = styles_.find(active_style_);
     if (style != styles_.end()) {
         auto entry = style->second.find(effect_id);

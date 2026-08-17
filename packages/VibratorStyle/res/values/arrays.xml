@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: 2026 The LineageOS Project
+    SPDX-License-Identifier: Apache-2.0
+
+    The values are the style-tier keys of /odm/etc/vibrator/vibrator_effect.json.
+    A device that ships a different tier set overrides these arrays with an RRO;
+    offering a tier the device does not ship is not fatal, because the vibrator
+    service falls back to the default tier for anything a selection lacks.
+-->
+<resources>
+    <string-array name="vibrator_style_entries" translatable="false">
+        <item>@string/vibrator_style_entry_default</item>
+        <item>@string/vibrator_style_entry_soft</item>
+    </string-array>
+
+    <string-array name="vibrator_style_values" translatable="false">
+        <item>def_style</item>
+        <item>soft_style</item>
+    </string-array>
+</resources>

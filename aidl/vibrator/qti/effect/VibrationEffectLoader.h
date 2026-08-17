@@ -9,8 +9,11 @@
 #include "effect.h"
 
 #include <json/json.h>
+#include <mutex>
 #include <string>
 #include <unordered_map>
+
+struct prop_info;
 
 // The shipped vibrator_effect.json declares more than one style tier for the
 // panel/model key (measured on infiniti and on stock OOS: def_style with 88
@@ -43,6 +46,16 @@ class VibrationEffectLoader {
     void loadStyle(const std::string& style, const Json::Value& effect_nodes);
     static std::string requestedStyle();
 
+    // Every shipped tier is already resident, so honouring a new selection is a
+    // re-point rather than a reload. Without this the picker would only take
+    // effect after the vibrator service restarted, which is a reboot for the
+    // user and exactly the kind of half-wired surface this lane is closing.
+    void refreshActiveStyle();
+
+    std::mutex mutex_;
     std::unordered_map<std::string, EffectMap> styles_;
     std::string active_style_;
+    const prop_info* style_prop_ = nullptr;
+    uint32_t style_serial_ = 0;
+    bool style_resolved_ = false;
 };

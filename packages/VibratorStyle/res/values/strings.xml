@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: 2026 The LineageOS Project
+    SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <string name="vibrator_style_title">Vibration style</string>
+    <string name="vibrator_style_summary">Choose how system haptics feel</string>
+
+    <string name="vibrator_style_entry_default">Standard</string>
+    <string name="vibrator_style_entry_soft">Soft</string>
+</resources>

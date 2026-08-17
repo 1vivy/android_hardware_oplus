@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: 2026 The LineageOS Project
+    SPDX-License-Identifier: Apache-2.0
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="org.lineageos.settings.vibratorstyle"
+          android:sharedUserId="android.uid.system">
+
+    <application
+        android:directBootAware="true"
+        android:label="@string/vibrator_style_title"
+        android:theme="@style/Theme.SubSettingsBase.Expressive">
+
+        <activity
+            android:exported="false"
+            android:label="@string/vibrator_style_title"
+            android:name=".VibratorStyleSettingsActivity">
+
+            <intent-filter>
+                <action android:name="com.android.settings.action.IA_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <meta-data android:name="com.android.settings.category"
+                       android:value="com.android.settings.category.ia.sound" />
+            <meta-data android:name="com.android.settings.icon"
+                       android:resource="@drawable/ic_settings_vibrator_style" />
+            <meta-data android:name="com.android.settings.icon_tintable"
+                       android:value="true" />
+            <meta-data android:name="com.android.settings.profile"
+                       android:value="primary_profile_only" />
+        </activity>
+
+    </application>
+</manifest>

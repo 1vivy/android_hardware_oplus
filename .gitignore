@@ -1,0 +1,4 @@
+# Host contract tests run from the worktree; their bytecode is build
+# output and has twice been staged by a broad `git add`.
+__pycache__/
+*.pyc

@@ -60,9 +60,13 @@ class EffectStyleContractTest(unittest.TestCase):
 
     def test_absent_or_unknown_selection_cannot_silence_haptics(self) -> None:
         cpp = read(LOADER_CPP)
-        # Unknown tier keeps the default rather than activating nothing.
-        self.assertIn("styles_.count(requested)", cpp)
-        self.assertIn("keeping ", cpp)
+        # Unknown tier resolves to the default rather than activating nothing.
+        # Keyed on the resolution itself, never on the log wording: the message
+        # is free to change, the fallback is not.
+        self.assertRegex(
+            cpp,
+            r"styles_\.count\(requested\)[^;]*\?\s*requested\s*:\s*kDefaultStyle",
+        )
         # An id the active tier does not define resolves against the default
         # tier, so selecting the smaller tier loses no effect.
         fallback = cpp[cpp.index("effect_stream* VibrationEffectLoader::getEffectStream") :]

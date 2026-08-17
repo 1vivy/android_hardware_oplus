@@ -1,0 +1,32 @@
+//
+// SPDX-FileCopyrightText: 2026 The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+// The user-facing selector for the vibrator effect-style tier. The tiers and
+// their payloads already ship in /odm/etc/vibrator; this app only chooses
+// between them by writing the property the QTI vibrator service reads.
+android_app {
+    name: "OplusVibratorStyle",
+    defaults: ["SettingsLibDefaults"],
+
+    srcs: ["src/**/*.kt"],
+    resource_dirs: ["res"],
+
+    certificate: "platform",
+    platform_apis: true,
+    system_ext_specific: true,
+    privileged: true,
+
+    static_libs: [
+        "androidx.core_core",
+        "androidx.preference_preference",
+        "org.lineageos.settings.resources",
+    ],
+
+    optimize: {
+        optimize: true,
+        proguard_flags_files: ["proguard.flags"],
+        shrink_resources: true,
+    },
+}
